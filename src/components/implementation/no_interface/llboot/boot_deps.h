@@ -55,19 +55,25 @@ struct llbooter_per_core {
 
 PERCPU(struct llbooter_per_core, llbooter);
 
+/* enum { /\* hard-coded initialization schedule *\/ */
+/* 	LLBOOT_SCHED = 2, */
+/* 	LLBOOT_MM    = 3, */
+/* }; */
 enum { /* hard-coded initialization schedule */
-	LLBOOT_SCHED = 2,
-	LLBOOT_MM    = 3,
+	LLBOOT_FREERTOS = 2,
 };
 
 struct comp_boot_info {
 	int symbols_initialized, initialized, memory_granted;
 };
-#define NCOMPS 6 	/* comp0, us, and the four other components */
+//#define NCOMPS 6 	/* comp0, us, and the four other components */
+#define NCOMPS 3 	/* comp0, us, and the four other components */
 static struct comp_boot_info comp_boot_nfo[NCOMPS];
 
-static spdid_t init_schedule[]   = {LLBOOT_MM, LLBOOT_SCHED, 0};
-static int     init_mem_access[] = {1, 0, 0};
+//static spdid_t init_schedule[]   = {LLBOOT_MM, LLBOOT_SCHED, 0};
+static spdid_t init_schedule[]   = {LLBOOT_FREERTOS, 0};
+//static int     init_mem_access[] = {1, 0, 0};
+static int     init_mem_access[] = {1, 0};
 static int     nmmgrs            = 0;
 static int     frame_frontier    = 0; /* which physical frames have we used? */
 

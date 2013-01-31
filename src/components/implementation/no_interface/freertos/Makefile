@@ -1,5 +1,5 @@
 C_OBJS=freertos.o
-ASM_OBJS=
+ASM_OBJS=cos_asm_scheduler.o
 COMPONENT=freeRTOS.o
 INTERFACES=
 DEPENDENCIES=

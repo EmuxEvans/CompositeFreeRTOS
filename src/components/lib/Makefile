@@ -40,6 +40,7 @@ clean:
 distclean:
 	make -C dietlibc-0.29 clean
 	make -C lwip/cos clean
+	make -C freeRTOS/FreeRTOS_Posix/Release clean
 # keep the following commands in one line. make executes each line
 # with a new shell.
 	cd ck; ./configure; cd ..
@@ -48,6 +49,7 @@ distclean:
 init: clean distclean all
 	make -C dietlibc-0.29
 	make -C lwip/cos
+	make -c freeRTOS/FreeRTOS_Posix/Release
 # keep the following commands in one line. Same as above.
 	cd ck; ./configure; cd ..
 	make -C ck

@@ -3,9 +3,16 @@ ASM_OBJS=cos_asm_scheduler.o
 COMPONENT=freeRTOS.o
 INTERFACES=
 DEPENDENCIES=
-IF_LIB=
+IF_LIB=./freertos_posix.o
+FREERTOSOBJ=../../../lib/freeRTOS/FreeRTOS_Posix/Release/freertos_posix.o
+
+pre: first all
+first:
+	$(info |     [CP]   copying freertos_posix.o from freeRTOS)
+	@cp $(FREERTOSOBJ) .
 
 include ../../Makefile.subsubdir
 ifeq (${ENABLE_STACK_MANAGER},1)
  MANDITORY_LIB=simple_stklib.o
 endif
+

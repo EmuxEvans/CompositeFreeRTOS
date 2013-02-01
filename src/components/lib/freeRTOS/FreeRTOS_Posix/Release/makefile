@@ -35,7 +35,7 @@ all: FreeRTOS_Posix
 # Tool invocations
 FreeRTOS_Posix: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
-	@echo 'Invoking: GCC C Linker'
+	@echo 'Invoking: GCC C Linker...'
 #	gcc -pthread -o"FreeRTOS_Posix" $(OBJS) $(USER_OBJS) $(LIBS) -lrt
 	ld -r -o freertos_posix.o $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'

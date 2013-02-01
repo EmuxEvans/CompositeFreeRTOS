@@ -109,10 +109,10 @@ extern "C" {
 /*-----------------------------------------------------------*/	
 
 /* Critical section management. */
-#define portENTER_CRITICAL()
-#define portEXIT_CRITICAL()
-#define portDISABLE_INTERRUPTS()
-#define portENABLE_INTERRUPTS()
+#define portENTER_CRITICAL() jw_lock()
+#define portEXIT_CRITICAL() jw_unlock()
+#define portDISABLE_INTERRUPTS() jw_lock()
+#define portENABLE_INTERRUPTS() jw_unlock()
 /*-----------------------------------------------------------*/
 
 /* Architecture specifics. */
@@ -123,7 +123,7 @@ extern "C" {
 /*-----------------------------------------------------------*/
 
 /* Kernel utilities. */
-extern void vPortYield( void ) __attribute__ ( ( naked ) );
+	extern void vPortYield( void ) ;
 #define portYIELD()					vPortYield()
 /*-----------------------------------------------------------*/
 

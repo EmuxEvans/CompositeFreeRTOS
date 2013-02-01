@@ -68,6 +68,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include <jw_freertos.h>
 
 /*-----------------------------------------------------------
  * Implementation of functions defined in portable.h for the AVR port.
@@ -105,6 +106,13 @@ any details of its type. */
 
 #define portENABLE_INTERRUPTS()
 
+typedef struct XPARAMS 
+{
+	pdTASK_CODE pxCode;
+	void *pvParams;
+} xParams;
+
+extern int cos_create_thread(int a, int b, int c);
 
 /* 
  * Opposite to portSAVE_CONTEXT().  Interrupts will have been disabled during
@@ -121,25 +129,57 @@ any details of its type. */
 static void prvSetupTimerInterrupt( void );
 /*-----------------------------------------------------------*/
 
+void *prvWaitForStart( void *pvParams) {
+	xParams *pxParams = (xParams *) pvParams;
+	pdTASK_CODE pvCode = pxParams->pxCode;
+	void *pParams = pxParams->pvParams;
+	
+	vPortFree(pvParams);
+	
+	// pthread_cleanup_push?
+	
+	pvCode (pParams);
+	
+	// other pthread crap here.
+
+	return (void *) NULL;
+}
+
+
+
 /* 
  * See header file for description. 
  */
 portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, pdTASK_CODE pxCode, void *pvParameters )
 {
-	return NULL;
+	xParams *pxThisThreadParams = pvPortMalloc( sizeof(xParams));
+	pxThisThreadParams->pxCode = pxCode;
+	pxThisThreadParams->pvParams = pvParameters;
+
+	// enter a critical section here.
+	jw_lock();
+	int thd_id = jw_create_thread((int) prvWaitForStart, (int) pxThisThreadParams, 0);
+	print("FreeRTOS started thd\n");
+	jw_unlock();
+
+	return pxTopOfStack;
 }
 /*-----------------------------------------------------------*/
 
 portBASE_TYPE xPortStartScheduler( void )
 {
+	// need to call prvSetupTimerInterrupt()
+	// and then restore the context of the first task that is going to run
+	// and start it.
+	
+	
 	return NULL;
 }
 /*-----------------------------------------------------------*/
 
 void vPortEndScheduler( void )
 {
-	/* It is unlikely that the AVR port will get stopped.  If required simply
-	disable the tick interrupt here. */
+	/* Probably don't need this. */
 }
 /*-----------------------------------------------------------*/
 
@@ -147,7 +187,6 @@ void vPortEndScheduler( void )
  * Manual context switch.  The first thing we do is save the registers so we
  * can use a naked attribute.
  */
-//void vPortYield( void ) __attribute__ ( ( naked ) );
 void vPortYield( void )
 {
 	return;
@@ -163,6 +202,7 @@ void vPortYield( void )
 //void vPortYieldFromTick( void ) __attribute__ ( ( naked ) );
 void vPortYieldFromTick( void )
 {
+	/* Save context, increment tick (vtaskincrementtick()), switch context, restore context */
 	return;
 }
 /*-----------------------------------------------------------*/

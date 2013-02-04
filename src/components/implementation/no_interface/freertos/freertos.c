@@ -48,6 +48,7 @@ void print(char *str) {
 
 static void freertos_ret_thd() { return; }
 
+int sched_init(void);
 void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
 	switch (t) {
 	case COS_UPCALL_CREATE:
@@ -77,12 +78,92 @@ void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
 	return;
 }
 
+#include <sched_hier.h>
+
 void cos_init(void);
+//extern int parent_sched_child_cntl_thd(spdid_t spdid);
+extern int parent_sched_child_cntl_thd(spdid_t spdid);
+//extern int sched_child_cntl_thd(spdid_t spdid);
+
+extern void parent_sched_exit(void);
+
+PERCPU_ATTR(static volatile, int, initialized_core); /* record the cores that still depend on us */
+
+void
+sched_exit(void)
+{
+	//	int i;
+
+	/* *PERCPU_GET(initialized_core) = 0; */
+	/* if (cos_cpuid() == INIT_CORE) { */
+	/* 	/\* The init core waiting for all cores to exit. *\/ */
+	/* 	for (i = 0; i < NUM_CPU ; i++) */
+	/* 		if (*PERCPU_GET_TARGET(initialized_core, i)) i = 0; */
+	/* 	/\* Don't delete the memory until all cores exit *\/ */
+	/* 	mman_release_all(); */
+	/* } */
+	return;
+}
+
+int sched_isroot(void) { return 1; }
+
+int
+sched_child_get_evt(spdid_t spdid, struct sched_child_evt *e, int idle, unsigned long wake_diff) { BUG(); return 0; }
+
 int sched_init(void) {
 	print("sched_init called from freertos component\n");
+	if (parent_sched_child_cntl_thd(cos_spd_id())) BUG();
+	//if (sched_child_cntl_thd(cos_spd_id())) BUG();
 	(void) cos_init();
 	return 0;
 }
+
+
+int
+sched_child_cntl_thd(spdid_t spdid)
+{
+	if (parent_sched_child_cntl_thd(cos_spd_id())) BUG();
+	//	parent_sched_exit();
+	if (cos_sched_cntl(COS_SCHED_PROMOTE_CHLD, 0, spdid)) BUG();
+	if (cos_sched_cntl(COS_SCHED_GRANT_SCHED, cos_get_thd_id(), spdid)) BUG();
+
+	return 0;
+}
+
+int
+sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd) { BUG(); return 0; }
+
+
+/* int parent_sched_child_cntl_thd(spdid_t spdid) { */
+/* 	print("WRONG FUNCTION!\n"); */
+/* } */
+
+/* int  sched_isroot(void) { return 0; } */
+
+/* void */
+/* sched_exit(void) */
+/* { */
+/* 	/\* printc("LLBooter: Core %ld called sched_exit. Switching back to alpha.\n", cos_cpuid()); *\/ */
+/* 	/\* while (1) cos_switch_thread(PERCPU_GET(llbooter)->alpha, 0);	 *\/ */
+/* } */
+
+/* int */
+/* sched_child_get_evt(spdid_t spdid, struct sched_child_evt *e, int idle, unsigned long wake_diff) */
+/* { BUG(); return 0; } */
+
+/* int */
+/* sched_child_cntl_thd(spdid_t spdid) */
+/* { */
+/* 	/\* if (cos_sched_cntl(COS_SCHED_PROMOTE_CHLD, 0, spdid)) {BUG(); while(1);} *\/ */
+/* 	/\* /\\* printc("Grant thd %d to sched %d\n", cos_get_thd_id(), spdid); *\\/ *\/ */
+/* 	/\* if (cos_sched_cntl(COS_SCHED_GRANT_SCHED, cos_get_thd_id(), spdid)) BUG(); *\/ */
+/* 	/\* return 0; *\/ */
+/* 	return 0; */
+/* } */
+
+/* int */
+/* sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd) { BUG(); return 0; } */
+
 
 
 void cos_init(void)

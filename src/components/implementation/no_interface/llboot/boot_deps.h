@@ -60,7 +60,7 @@ PERCPU(struct llbooter_per_core, llbooter);
 /* 	LLBOOT_MM    = 3, */
 /* }; */
 enum { /* hard-coded initialization schedule */
-	LLBOOT_FREERTOS = 2,
+	LLBOOT_FREERTOS = 2
 };
 
 struct comp_boot_info {
@@ -361,9 +361,13 @@ sched_child_get_evt(spdid_t spdid, struct sched_child_evt *e, int idle, unsigned
 int 
 sched_child_cntl_thd(spdid_t spdid) 
 { 
-	if (cos_sched_cntl(COS_SCHED_PROMOTE_CHLD, 0, spdid)) {BUG(); while(1);}
+	//	cos_print("From llboot\n", 12);
+	if (cos_sched_cntl(COS_SCHED_PROMOTE_CHLD, 0, spdid)) {
+		//		BUG(); 
+		//	while(1);
+	}
 	/* printc("Grant thd %d to sched %d\n", cos_get_thd_id(), spdid); */
-	if (cos_sched_cntl(COS_SCHED_GRANT_SCHED, cos_get_thd_id(), spdid)) BUG();
+	//	if (cos_sched_cntl(COS_SCHED_GRANT_SCHED, cos_get_thd_id(), spdid)) BUG();
 	return 0;
 }
 

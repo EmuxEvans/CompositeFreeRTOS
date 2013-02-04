@@ -51,7 +51,7 @@
 
 #include <cobj_format.h>
 
-enum {PRINT_NONE = 0, PRINT_HIGH, PRINT_NORMAL, PRINT_DEBUG} print_lvl = PRINT_HIGH;
+enum {PRINT_NONE = 0, PRINT_HIGH, PRINT_NORMAL, PRINT_DEBUG} print_lvl = PRINT_DEBUG;
 
 #define printl(lvl,format, args...)				\
 	{							\
@@ -383,6 +383,7 @@ static unsigned long getsym(bfd *obj, char* symbol)
 	return 0;
 }
 
+#define DEBUG
 #ifdef DEBUG
 static void print_syms(bfd *obj)
 {
@@ -432,6 +433,7 @@ findsections(asection *sect, PTR obj, int ld)
 	int i;
 
 	for (i = 0 ; css[i].secid < MAXSEC_S ; i++) {
+		//	if (!strcmp(sect->name, ".kmem")) printl(
 		if (!strcmp(css[i].sname, sect->name)) {
 			if (ld) css[i].ldobj.s  = sect;
 			else    css[i].srcobj.s = sect;
@@ -576,10 +578,10 @@ int set_object_addresses(bfd *obj, struct service_symbs *obj_data)
 	for (i = 0 ; i < st->num_symbs ; i++) {
 		char *symb = st->symbs[i].name;
 		unsigned long addr = getsym(obj, symb);
-/*
+
 		printl(PRINT_DEBUG, "Symbol %s at address 0x%x.\n", symb, 
 		       (unsigned int)addr);
-*/
+
 		if (addr == 0) {
 			printl(PRINT_DEBUG, "Symbol %s has invalid address.\n", symb);
 			return -1;
@@ -772,6 +774,8 @@ load_service(struct service_symbs *ret_data, unsigned long lower_addr, unsigned 
 		printl(PRINT_DEBUG, "Not an object file!\n");
 		return -1;
 	}
+
+	print_syms(objout);
 
 	/* Now create the linked objects... */
 	bfd_map_over_sections(objout, findsections_ldobj, section_info);
@@ -1006,6 +1010,8 @@ static int obs_serialize(asymbol *symb, void *data)
 		return 0;
 	}
 
+	printl(PRINT_DEBUG,"obj_serialize, name: %s\n", symb->name);
+
 	name = malloc(strlen(symb->name) + 1);
 	strcpy(name, symb->name);
 	
@@ -1076,7 +1082,7 @@ static int obj_serialize_symbols(char *tmp_exec, int symb_type, struct service_s
 		printl(PRINT_DEBUG, "Not an object file!\n");
 		return -1;
 	}
-	
+
 	if (symb_type == UNDEF_SYMB_TYPE) {
 		st = &str->undef;
 	} else if (symb_type == EXPORTED_SYMB_TYPE) {
@@ -1180,7 +1186,7 @@ static inline void add_undef_symb(struct service_symbs *ss, const char *name, in
 static void add_kernel_exports(struct service_symbs *service)
 {
 	add_kexport(service, COMP_INFO);
-
+	add_kexport(service, "cos_sched_notifications");
 	return;
 }
 

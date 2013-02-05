@@ -77,6 +77,7 @@ Changes from V1.2.3
 
 #include <stdlib.h>
 #include <math.h>
+#include <jw_freertos.sh>
 
 /* Scheduler include files. */
 #include "FreeRTOS.h"
@@ -127,6 +128,8 @@ short sError = pdFALSE;
 
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
+	jw_print("vCompetingMathTask1\n");
+	jw_print(pcTaskStartMsg);
 
 	/* The variable this task increments to show it is still running is passed in 
 	as the parameter. */
@@ -148,6 +151,7 @@ short sError = pdFALSE;
 		if( fabs( d4 - dAnswer ) > 0.001 )
 		{
 			vPrintDisplayMessage( &pcTaskFailMsg );
+			jw_print(pcTaskFailMsg);
 			sError = pdTRUE;
 		}
 

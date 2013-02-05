@@ -403,6 +403,7 @@ static inline struct spd *thd_get_depth_sched(struct thread *t, unsigned short i
 
 static inline int thd_scheduled_by(struct thread *thd, struct spd *spd) 
 {
+	printk("SPD sched depth: %d\n", spd->sched_depth);
 	return thd_get_sched_info(thd, spd->sched_depth)->scheduler == spd;
 }
 

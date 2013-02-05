@@ -112,7 +112,6 @@ typedef struct XPARAMS
 	void *pvParams;
 } xParams;
 
-extern int cos_create_thread(int a, int b, int c);
 
 /* 
  * Opposite to portSAVE_CONTEXT().  Interrupts will have been disabled during
@@ -137,7 +136,8 @@ void *prvWaitForStart( void *pvParams) {
 	vPortFree(pvParams);
 	
 	// pthread_cleanup_push?
-	
+
+	jw_print("Running task's function!\n");
 	pvCode (pParams);
 	
 	// other pthread crap here.
@@ -159,7 +159,9 @@ portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, pdTASK_CODE
 	// enter a critical section here.
 	jw_lock();
 	int thd_id = jw_create_thread((int) prvWaitForStart, (int) pxThisThreadParams, 0);
-	print("FreeRTOS started thd\n");
+	jw_print("FreeRTOS started thd... switching to it...\n");
+	//	jw_switch_thread(thd_id, 0);
+	
 	jw_unlock();
 
 	return pxTopOfStack;

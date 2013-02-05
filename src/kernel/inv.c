@@ -450,6 +450,8 @@ cos_syscall_create_thread(int spd_id, int a, int b, int c)
 	thd->flags |= THD_STATE_CYC_CNT;
 	initialize_sched_info(thd, curr_spd);
 	
+	printk("cos created thread in spd %d: %d\n", spd_id, thd_get_id(thd));
+
 	return thd_get_id(thd);
 }
 
@@ -733,6 +735,7 @@ switch_thread_get_target(unsigned short int tid, struct thread *curr,
 			*ret_code = COS_SCHED_RET_INVAL;
 		}
 		/* error otherwise */
+		printk("JWW: thread was null\n");
 		goto ret_err;
 	}
 
@@ -743,6 +746,12 @@ switch_thread_get_target(unsigned short int tid, struct thread *curr,
 		*ret_code = COS_SCHED_RET_ERROR;
 		/* printk("curr %d sched by %d, thd %d sched by %d.\n", thd_get_id(curr), spd_get_index(thd_get_sched_info(curr, curr_spd->sched_depth)->scheduler),  */
 		/*        thd_get_id(thd), spd_get_index(thd_get_sched_info(thd, curr_spd->sched_depth)->scheduler)); */
+		if (!thd_scheduled_by(curr, curr_spd)) {
+			printk("current thread isn't scheduled by the spd\n");
+		}
+		if (!thd_scheduled_by(thd, curr_spd)) {
+			printk("target thread isn't scheduled by the spd\n");
+		}
 		goto ret_err;
 	}
 
@@ -751,6 +760,7 @@ switch_thread_get_target(unsigned short int tid, struct thread *curr,
 		/* printk("args: tid %u, curr thd %d, curr spd %p, \n thd id %d is upcall thd...", tid, thd_get_id(curr), curr_spd, thd_get_id(thd)); */
 		cos_meas_event(COS_MEAS_UPCALL_INACTIVE);
 		*ret_code = COS_SCHED_RET_INVAL;
+		printk("JWW: we cannot schedule to run an upcall thread that is not running\n");
 		goto ret_err;
 	}
 	
@@ -810,7 +820,7 @@ cos_syscall_switch_thread_cont(int spd_id, unsigned short int rthd_id,
 
 	*preempt = 0;
 	curr = core_get_curr_thd();
-	/* printk("thd %d, switch thd core %d\n", thd_get_id(curr), get_cpuid()); */
+	printk("thd %d, switch thd core %d\n", thd_get_id(curr), get_cpuid()); 
 
 	curr_spd = thd_validate_get_current_spd(curr, spd_id);
 	if (unlikely(!curr_spd)) {
@@ -2469,6 +2479,8 @@ cos_syscall_sched_cntl(int spd_id, int operation, int thd_id, long option)
 	case COS_SCHED_EVT_REGION:
 	{
 		unsigned long region = (unsigned long)option;
+
+		printk("Setting data region for spd %d\n", spd_get_index(spd));
 
 		if (region < spd->location[0].lowest_addr ||
 		    region + PAGE_SIZE >= spd->location[0].lowest_addr + spd->location[0].size) {

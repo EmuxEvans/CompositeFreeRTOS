@@ -55,6 +55,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <jw_freertos.h>
 
 /* Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
 all the API functions to use the MPU wrappers.  That should only be done when
@@ -439,10 +440,12 @@ tskTCB * pxNewTCB;
 		the	top of stack variable is updated. */
 		#if( portUSING_MPU_WRAPPERS == 1 )
 		{
+			jw_print("initialising stack w/ MPU wrappers\n");
 			pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxTaskCode, pvParameters, xRunPrivileged );
 		}
 		#else
 		{
+			jw_print("initialising stack w/OUT MPU wrappers\n");
 			pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxTaskCode, pvParameters );
 		}
 		#endif
@@ -523,7 +526,9 @@ tskTCB * pxNewTCB;
 				portYIELD_WITHIN_API();
 			}
 		}
+		jw_print ("FreeRTOS started task successfully\n");
 	}
+
 
 	return xReturn;
 }

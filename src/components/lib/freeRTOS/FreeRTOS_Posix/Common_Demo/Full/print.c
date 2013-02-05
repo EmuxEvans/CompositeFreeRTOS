@@ -83,7 +83,7 @@ Changes from V2.0.0
 */
 
 #include <stdlib.h>
-
+#include <jw_freertos.sh>
 /* Scheduler include files. */
 #include "FreeRTOS.h"
 #include "queue.h"
@@ -106,12 +106,14 @@ const unsigned portBASE_TYPE uxQueueSize = 20;
 
 void vPrintDisplayMessage( const char * const * ppcMessageToSend )
 {
-	#ifdef USE_STDIO
-		xQueueSend( xPrintQueue, ( void * ) ppcMessageToSend, ( portTickType ) 0 );
-	#else
-    	/* Stop warnings. */
-		( void ) ppcMessageToSend;
-	#endif
+	//JWW CHANGE THIS BACK
+	/* #ifdef USE_STDIO */
+	/* 	xQueueSend( xPrintQueue, ( void * ) ppcMessageToSend, ( portTickType ) 0 ); */
+	/* #else */
+    	/* /\* Stop warnings. *\/ */
+	/* 	( void ) ppcMessageToSend; */
+	/* #endif */
+	jw_print((char *)ppcMessageToSend);
 }
 /*-----------------------------------------------------------*/
 

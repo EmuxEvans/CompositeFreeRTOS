@@ -367,7 +367,7 @@ sched_child_cntl_thd(spdid_t spdid)
 		//	while(1);
 	}
 	/* printc("Grant thd %d to sched %d\n", cos_get_thd_id(), spdid); */
-	//	if (cos_sched_cntl(COS_SCHED_GRANT_SCHED, cos_get_thd_id(), spdid)) BUG();
+	if (cos_sched_cntl(COS_SCHED_GRANT_SCHED, cos_get_thd_id(), spdid)) BUG();
 	return 0;
 }
 

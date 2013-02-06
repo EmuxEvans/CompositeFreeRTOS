@@ -10,8 +10,8 @@ FREERTOSOBJ=../../../lib/freeRTOS/FreeRTOS_Posix/Release/freertos_posix.o
 pre: first all
 first:
 	$(info |     [MAKE] compiling freeRTOS lib...)
-	# make -C ../../../lib/freeRTOS/FreeRTOS_Posix/Release clean
-	# make -C ../../../lib/freeRTOS/FreeRTOS_Posix/Release
+	make -C ../../../lib/freeRTOS/FreeRTOS_Posix/Release clean
+	make -C ../../../lib/freeRTOS/FreeRTOS_Posix/Release
 	$(info |     [CP]   copying freertos_posix.o from freeRTOS)
 	@cp $(FREERTOSOBJ) .
 

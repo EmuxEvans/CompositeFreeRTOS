@@ -124,7 +124,7 @@ void print(char *str) {
 }
 
 static void freertos_ret_thd() { 
-	jw_print("freertos_ret_thd\n");
+	//	jw_print("freertos_ret_thd\n");
 	return; 
 }
 
@@ -132,12 +132,13 @@ int sched_init(void);
 void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
 	switch (t) {
 	case COS_UPCALL_CREATE:
-		freertos_ret_thd();
+		//freertos_ret_thd();
 		jw_print("Calling function to start thread....\n");
 		((crt_thd_fn_t)arg1)(arg2);
+		jw_print("Thread terminated %d\n", jw_get_thread_id);
 		break;
 	case COS_UPCALL_DESTROY:
-		print("Destroy upcall in freertos cos_upcall_fn\n");
+		//		print("Destroy upcall in freertos cos_upcall_fn\n");
 		break;
 	case COS_UPCALL_UNHANDLED_FAULT:
 		print("Unhandled fault in freertos component.\n");
@@ -171,7 +172,7 @@ sched_exit(void)
 	return;
 }
 
-int sched_isroot(void) { return 1; }
+int sched_isroot(void) { return 0; }
 
 int
 sched_child_get_evt(spdid_t spdid, struct sched_child_evt *e, int idle, unsigned long wake_diff) { BUG(); return 0; }

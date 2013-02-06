@@ -153,6 +153,8 @@ short sError = pdFALSE;
 			vPrintDisplayMessage( &pcTaskFailMsg );
 			jw_print(pcTaskFailMsg);
 			sError = pdTRUE;
+		} else {
+			jw_print("Math task 1 calculation successful\n");
 		}
 
 		if( sError == pdFALSE )

@@ -52,6 +52,7 @@ int jw_create_thread(int a, int b, int c) {
 }
 
 int jw_switch_thread(int a, int b) {
+	jw_print("Switching threads from %d to %d\n", cos_get_thd_id(), a);
 	return cos_switch_thread(a, b);
 }
 

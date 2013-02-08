@@ -440,12 +440,12 @@ tskTCB * pxNewTCB;
 		the	top of stack variable is updated. */
 		#if( portUSING_MPU_WRAPPERS == 1 )
 		{
-			jw_print("initialising stack w/ MPU wrappers\n");
+			//jw_print("initialising stack w/ MPU wrappers\n");
 			pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxTaskCode, pvParameters, xRunPrivileged );
 		}
 		#else
 		{
-			jw_print("initialising stack w/OUT MPU wrappers\n");
+			//jw_print("initialising stack w/OUT MPU wrappers\n");
 			pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxTaskCode, pvParameters );
 		}
 		#endif

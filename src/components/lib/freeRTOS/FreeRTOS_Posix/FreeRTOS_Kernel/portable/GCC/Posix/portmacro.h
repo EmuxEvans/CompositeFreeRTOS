@@ -131,6 +131,9 @@ extern "C" {
 #define portTASK_FUNCTION_PROTO( vFunction, pvParameters ) void vFunction( void *pvParameters )
 #define portTASK_FUNCTION( vFunction, pvParameters ) void vFunction( void *pvParameters )
 
+	extern void pvAddTaskHandle( void *pvTaskHandle);
+#define traceTASK_CREATE(pxNewTCB) pvAddTaskHandle(pxNewTCB);
+
 #ifdef __cplusplus
 }
 #endif

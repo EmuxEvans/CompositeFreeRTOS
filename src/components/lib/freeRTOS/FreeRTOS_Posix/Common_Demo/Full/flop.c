@@ -288,7 +288,7 @@ short sError = pdFALSE;
 
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
-
+	jw_print("Started math task 4\n");
 	/* The variable this task increments to show it is still running is passed in 
 	as the parameter. */
 	pusTaskCheckVariable = ( unsigned short * ) pvParameters;

@@ -100,11 +100,21 @@ any details of its type. */
  * so we need not worry about reading/writing to the stack pointer. 
  */
 
+#define MAX_NUMBER_OF_TASKS 256
+
 #define portSAVE_CONTEXT()
 
-#define portDISABLE_INTERRUPTS()
+/* #define portDISABLE_INTERRUPTS() */
 
-#define portENABLE_INTERRUPTS()
+/* #define portENABLE_INTERRUPTS() */
+
+typedef struct taskMapping
+{
+	int thd_id;
+	xTaskHandle task;
+} taskMapping_t;
+
+taskMapping_t taskMappings[MAX_NUMBER_OF_TASKS];
 
 typedef struct XPARAMS 
 {
@@ -112,6 +122,7 @@ typedef struct XPARAMS
 	void *pvParams;
 } xParams;
 
+int lastCreatedTask;
 
 /* 
  * Opposite to portSAVE_CONTEXT().  Interrupts will have been disabled during
@@ -133,7 +144,7 @@ void *prvWaitForStart( void *pvParams) {
 	pdTASK_CODE pvCode = pxParams->pxCode;
 	void *pParams = pxParams->pvParams;
 	
-	vPortFree(pvParams);
+	//	vPortFree(pvParams);
 	
 	// pthread_cleanup_push?
 
@@ -145,38 +156,40 @@ void *prvWaitForStart( void *pvParams) {
 	return (void *) NULL;
 }
 
-
-
 /* 
  * See header file for description. 
  */
 portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, pdTASK_CODE pxCode, void *pvParameters )
 {
+	
 	xParams *pxThisThreadParams = pvPortMalloc( sizeof(xParams));
 	pxThisThreadParams->pxCode = pxCode;
 	pxThisThreadParams->pvParams = pvParameters;
 
 	// enter a critical section here.
-	jw_lock();
+	//	jw_lock();
 	int thd_id = jw_create_thread((int) prvWaitForStart, (int) pxThisThreadParams, 0);
-	jw_print("FreeRTOS started thd... switching to it...\n");
+	lastCreatedTask = thd_id;
+
+	jw_print("FreeRTOS started thd %d\n", thd_id);//.. switching to it...\n");
 	//	jw_switch_thread(thd_id, 0);
 	
-	jw_unlock();
+	//	jw_unlock();
 
 	return pxTopOfStack;
 }
 /*-----------------------------------------------------------*/
 
-portBASE_TYPE xPortStartScheduler( void )
-{
-	// need to call prvSetupTimerInterrupt()
-	// and then restore the context of the first task that is going to run
-	// and start it.
-	
-	
-	return NULL;
+void pvAddTaskMapping (int thread_id, xTaskHandle task_handle) {
+	// FIXME: should make this mapping more dynamic.
+	taskMappings[thread_id].thd_id = thread_id;
+	taskMappings[thread_id].task = task_handle;
 }
+
+void pvAddTaskHandle (void *pxTaskHandle) {
+	pvAddTaskMapping((int) lastCreatedTask, (xTaskHandle) pxTaskHandle);
+}
+
 /*-----------------------------------------------------------*/
 
 void vPortEndScheduler( void )
@@ -185,12 +198,42 @@ void vPortEndScheduler( void )
 }
 /*-----------------------------------------------------------*/
 
+int prvGetThreadHandle( xTaskHandle task_handle) {
+	int i;
+	for (i = 0; i < MAX_NUMBER_OF_TASKS; i++) {
+		if (taskMappings[i].task == task_handle) {
+			return taskMappings[i].thd_id;
+		}
+	}
+	jw_print("NO TASK FOUND FOR THE TASK HANDLE\n");
+	return 0;
+}
+
 /*
- * Manual context switch.  The first thing we do is save the registers so we
- * can use a naked attribute.
+ * Manual context switch.  
  */
 void vPortYield( void )
 {
+	jw_print("Yielding from the port.\n");
+
+	//	jw_lock();
+
+	jw_print("Acquired lock.\n");
+
+	int cur_thd_id = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
+	
+	vTaskSwitchContext();
+
+	jw_print("Switched context\n");
+	
+	int next_thd = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
+	
+	jw_print("Yielding from thd %d to thd %d\n", cur_thd_id, next_thd);
+	
+	jw_switch_thread(next_thd, 0);
+	
+	jw_unlock();
+	
 	return;
 }
 /*-----------------------------------------------------------*/
@@ -218,4 +261,18 @@ static void prvSetupTimerInterrupt( void )
 }
 
 
+portBASE_TYPE xPortStartScheduler( void )
+{
+	// need to call prvSetupTimerInterrupt()
+	// and then restore the context of the first task that is going to run
+	// and start it.
+	jw_print("Starting freeRTOS scheduler\n");
+
+	//vPortEnableInterrupts();
+	int first_thread = prvGetThreadHandle(xTaskGetCurrentTaskHandle()); 
+	jw_print("First thread: %d\n", first_thread);
+	jw_switch_thread(first_thread, 0);
+	
+	return 0;
+}
 	

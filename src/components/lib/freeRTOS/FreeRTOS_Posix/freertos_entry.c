@@ -152,7 +152,7 @@ void vMainQueueSendPassed( void )
 int freeRTOS_entry( void )
 {
 	/* CREATE ALL THE DEMO APPLICATION TASKS. */
-	//	vStartMathTasks( tskIDLE_PRIORITY );
+	vStartMathTasks( tskIDLE_PRIORITY );
 /* 	vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY ); */
 /* 	vCreateBlockTimeTasks(); */
 /* 	vStartSemaphoreTasks( mainSEMAPHORE_TASK_PRIORITY ); */
@@ -188,7 +188,7 @@ int freeRTOS_entry( void )
 	/* xTaskCreate( prvSerialConsoleEchoTask, "SerialRx", configMINIMAL_STACK_SIZE, xSerialRxQueue, tskIDLE_PRIORITY + 4, &hSerialTask ); */
 
 	/* Set the scheduler running.  This function will not return unless a task calls vTaskEndScheduler(). */
-	//       	vTaskStartScheduler();
+	vTaskStartScheduler();
 	print("Hello, World!\n");
 	return 1;
 }

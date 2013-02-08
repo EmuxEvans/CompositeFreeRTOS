@@ -160,7 +160,7 @@ portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, pdTASK_CODE
 	jw_lock();
 	int thd_id = jw_create_thread((int) prvWaitForStart, (int) pxThisThreadParams, 0);
 	jw_print("FreeRTOS started thd... switching to it...\n");
-	jw_switch_thread(thd_id, 0);
+	//	jw_switch_thread(thd_id, 0);
 	
 	jw_unlock();
 

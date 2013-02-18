@@ -388,9 +388,11 @@ signed portBASE_TYPE xTaskGenericCreate( pdTASK_CODE pxTaskCode, const signed ch
 {
 signed portBASE_TYPE xReturn;
 tskTCB * pxNewTCB;
-
+ 
+ 
 	/* Allocate the memory required by the TCB and stack for the new task,
 	checking that the allocation was successful. */
+ jw_print("Starting new task\n");
 	pxNewTCB = prvAllocateTCBAndStack( usStackDepth, puxStackBuffer );
 
 	if( pxNewTCB != NULL )
@@ -445,7 +447,7 @@ tskTCB * pxNewTCB;
 		}
 		#else
 		{
-			//jw_print("initialising stack w/OUT MPU wrappers\n");
+			jw_print("initialising stack w/OUT MPU wrappers\n");
 			pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxTaskCode, pvParameters );
 		}
 		#endif
@@ -493,16 +495,18 @@ tskTCB * pxNewTCB;
 			}
 			#endif
 			uxTaskNumber++;
-
+			
 			prvAddTaskToReadyQueue( pxNewTCB );
 
 			xReturn = pdPASS;
 			traceTASK_CREATE( pxNewTCB );
 		}
 		portEXIT_CRITICAL();
+		jw_print("Have added task to ready queue\n");
 	}
 	else
 	{
+		jw_print("Could not allocate required memory!\n");
 		xReturn = errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY;
 		traceTASK_CREATE_FAILED( pxNewTCB );
 	}
@@ -1087,7 +1091,7 @@ signed portBASE_TYPE xTaskResumeAll( void )
 {
 register tskTCB *pxTCB;
 signed portBASE_TYPE xAlreadyYielded = pdFALSE;
-
+ jw_print("Resuming all tasks\n");
 	/* It is possible that an ISR caused a task to be removed from an event
 	list while the scheduler was suspended.  If this was the case then the
 	removed task will have been added to the xPendingReadyList.  Once the
@@ -1785,7 +1789,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 {
 	/* Stop warnings. */
 	( void ) pvParameters;
-
+	jw_print("Starting the idle task!\n");
 	for( ;; )
 	{
 		/* See if any tasks have been deleted. */
@@ -1797,6 +1801,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 			see if any other task has become available.  If we are using
 			preemption we don't need to do this as any task becoming available
 			will automatically get the processor anyway. */
+			jw_print("Yielding from idle task\n");
 			taskYIELD();
 		}
 		#endif
@@ -1812,6 +1817,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 			the list, and an occasional incorrect value will not matter.  If
 			the ready list at the idle priority contains more than one task
 			then a task other than the idle task is ready to execute. */
+			jw_print("Idle task may be yielding\n");
 			if( listCURRENT_LIST_LENGTH( &( pxReadyTasksLists[ tskIDLE_PRIORITY ] ) ) > ( unsigned portBASE_TYPE ) 1 )
 			{
 				taskYIELD();
@@ -1822,7 +1828,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 		#if ( configUSE_IDLE_HOOK == 1 )
 		{
 			extern void vApplicationIdleHook( void );
-
+			jw_print("Calling application idle hook!\n");
 			/* Call the user defined function from within the idle task.  This
 			allows the application designer to add background functionality
 			without the overhead of a separate task.
@@ -1981,7 +1987,7 @@ static void prvCheckTasksWaitingTermination( void )
 			if( !xListIsEmpty )
 			{
 				tskTCB *pxTCB;
-
+				jw_print("Killing a task\n");
 				portENTER_CRITICAL();
 				{
 					pxTCB = ( tskTCB * ) listGET_OWNER_OF_HEAD_ENTRY( ( ( xList * ) &xTasksWaitingTermination ) );
@@ -2025,6 +2031,8 @@ tskTCB *pxNewTCB;
 			/* Just to help debugging. */
 			memset( pxNewTCB->pxStack, tskSTACK_FILL_BYTE, usStackDepth * sizeof( portSTACK_TYPE ) );
 		}
+	} else {
+		jw_print("Malloc fail in prvAllocateTCBAndStack\n");
 	}
 
 	return pxNewTCB;

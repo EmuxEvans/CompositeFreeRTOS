@@ -72,15 +72,15 @@ task.h is included from an application file. */
 
 #include "FreeRTOS.h"
 #include "task.h"
-
+#include <jw_freertos.h>
 #undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
 /*-----------------------------------------------------------*/
 
 void *pvPortMalloc( size_t xWantedSize )
 {
-void *pvReturn;
-
+	void *pvReturn;
+	jw_print("WRONG MALLOC, IDIOT\n");
 	vTaskSuspendAll();
 	{
 		pvReturn = malloc( xWantedSize );
@@ -91,6 +91,7 @@ void *pvReturn;
 	{
 		if( pvReturn == NULL )
 		{
+			jw_print("Malloc failed from heap_3\n");
 			extern void vApplicationMallocFailedHook( void );
 			vApplicationMallocFailedHook();
 		}

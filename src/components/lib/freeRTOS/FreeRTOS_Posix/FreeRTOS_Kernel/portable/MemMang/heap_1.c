@@ -83,6 +83,7 @@ task.h is included from an application file. */
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include <jw_freertos.h>
 
 #undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
@@ -104,7 +105,7 @@ static size_t xNextFreeByte = ( size_t ) 0;
 void *pvPortMalloc( size_t xWantedSize )
 {
 void *pvReturn = NULL;
-
+ jw_print("Called pvPortMalloc in heap_1.\n");
 	/* Ensure that blocks are always aligned to the required number of bytes. */
 	#if portBYTE_ALIGNMENT != 1
 		if( xWantedSize & portBYTE_ALIGNMENT_MASK )
@@ -114,6 +115,7 @@ void *pvReturn = NULL;
 		}
 	#endif
 
+		//		jw_print("Suspending in pvPortMalloc()\n");
 	vTaskSuspendAll();
 	{
 		/* Check there is enough room left for the allocation. */
@@ -126,6 +128,7 @@ void *pvReturn = NULL;
 			xNextFreeByte += xWantedSize;
 		}
 	}
+	//	jw_print("Resuming in pvPortMalloc()\n");
 	xTaskResumeAll();
 
 	#if( configUSE_MALLOC_FAILED_HOOK == 1 )
@@ -137,7 +140,8 @@ void *pvReturn = NULL;
 		}
 	}
 	#endif
-
+	
+	//	jw_print("Returning from pvPortMalloc()\n");
 	return pvReturn;
 }
 /*-----------------------------------------------------------*/

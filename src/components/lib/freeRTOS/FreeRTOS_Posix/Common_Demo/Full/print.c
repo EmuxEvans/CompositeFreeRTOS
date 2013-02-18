@@ -113,7 +113,7 @@ void vPrintDisplayMessage( const char * const * ppcMessageToSend )
     	/* /\* Stop warnings. *\/ */
 	/* 	( void ) ppcMessageToSend; */
 	/* #endif */
-	jw_print((char *)ppcMessageToSend);
+	jw_print((char *)*ppcMessageToSend);
 }
 /*-----------------------------------------------------------*/
 

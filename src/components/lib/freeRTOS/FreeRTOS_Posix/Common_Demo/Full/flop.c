@@ -114,6 +114,7 @@ void vStartMathTasks( unsigned portBASE_TYPE uxPriority )
 	xTaskCreate( vCompetingMathTask2, "Math6", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 5 ] ), uxPriority, NULL );
 	xTaskCreate( vCompetingMathTask3, "Math7", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 6 ] ), uxPriority, NULL );
 	xTaskCreate( vCompetingMathTask4, "Math8", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 7 ] ), uxPriority, NULL );
+	jw_print("Created all tasks...\n");
 }
 /*-----------------------------------------------------------*/
 
@@ -180,7 +181,7 @@ short sError = pdFALSE;
 
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
-
+	jw_print(pcTaskStartMsg);
 	/* The variable this task increments to show it is still running is passed in 
 	as the parameter. */
 	pusTaskCheckVariable = ( unsigned short * ) pvParameters;
@@ -229,16 +230,21 @@ short sError = pdFALSE;
 
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
-
+	jw_print(pcTaskStartMsg);
 	/* The variable this task increments to show it is still running is passed in 
 	as the parameter. */
 	pusTaskCheckVariable = ( unsigned short * ) pvParameters;
+
+	jw_print("starting math task 3 malloc\n");
 
 	pdArray = ( portDOUBLE * ) pvPortMalloc( ( size_t ) 250 * sizeof( portDOUBLE ) );
 
 	/* Keep filling an array, keeping a running total of the values placed in the 
 	array.  Then run through the array adding up all the values.  If the two totals 
 	do not match, stop the check variable from incrementing. */
+	
+	jw_print("starting math task 3 loop\n");
+
 	for( ;; )
 	{
 		dTotal1 = 0.0;
@@ -250,6 +256,7 @@ short sError = pdFALSE;
 			dTotal1 += ( portDOUBLE ) usPosition + 5.5;	
 		}
 
+		jw_print("yielding from math task 3\n");
 		taskYIELD();
 
 		for( usPosition = 0; usPosition < usArraySize; usPosition++ )
@@ -289,6 +296,7 @@ short sError = pdFALSE;
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
 	jw_print("Started math task 4\n");
+	jw_print(pcTaskStartMsg);
 	/* The variable this task increments to show it is still running is passed in 
 	as the parameter. */
 	pusTaskCheckVariable = ( unsigned short * ) pvParameters;
@@ -309,6 +317,7 @@ short sError = pdFALSE;
 			dTotal1 += ( portDOUBLE ) usPosition * 12.123;	
 		}
 
+		jw_print("yielding from task 4\n");
 		taskYIELD();
 
 		for( usPosition = 0; usPosition < usArraySize; usPosition++ )

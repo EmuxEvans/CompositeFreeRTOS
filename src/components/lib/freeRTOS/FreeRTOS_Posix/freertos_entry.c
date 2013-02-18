@@ -189,7 +189,7 @@ int freeRTOS_entry( void )
 
 	/* Set the scheduler running.  This function will not return unless a task calls vTaskEndScheduler(). */
 	vTaskStartScheduler();
-	print("Hello, World!\n");
+	jw_print("END OF FREERTOS EXECUTION\n");
 	return 1;
 }
 /*-----------------------------------------------------------*/

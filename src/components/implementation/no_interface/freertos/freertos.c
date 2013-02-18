@@ -35,12 +35,15 @@ jw_print(char *fmt, ...)
 }
 
 void jw_lock() {
+	jw_print("taking lock with jw_lock\n");
 	if (cos_sched_lock_take()) {
+		jw_print("Couldn't take lock!\n\n");
 		BUG();
 	}
 }
 
 void jw_unlock() {
+	jw_print("Releasing lock!\n");
 	if (cos_sched_lock_release()) {
 		BUG();
 	}

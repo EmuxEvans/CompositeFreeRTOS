@@ -229,10 +229,12 @@ void vPortYield( void )
 	int next_thd = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
 	
 	jw_print("Yielding from thd %d to thd %d\n", cur_thd_id, next_thd);
+
+	//	jw_unlock();
 	
 	jw_switch_thread(next_thd, 0);
 	
-	jw_unlock();
+
 	
 	return;
 }

@@ -56,6 +56,8 @@
 #include "FreeRTOS.h"
 #include "list.h"
 
+#include <jw_freertos.h>
+
 /*-----------------------------------------------------------
  * PUBLIC LIST API documented in list.h
  *----------------------------------------------------------*/
@@ -131,6 +133,7 @@ portTickType xValueOfInsertion;
 	}
 	else
 	{
+		jw_print("Entered vlistInsert!\n");
 		/* *** NOTE ***********************************************************
 		If you find your application is crashing here then likely causes are:
 			1) Stack overflow - 

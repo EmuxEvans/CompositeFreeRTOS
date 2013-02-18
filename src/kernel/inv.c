@@ -847,6 +847,7 @@ cos_syscall_switch_thread_cont(int spd_id, unsigned short int rthd_id,
 	switch_thread_update_flags(da, &flags);
 
 	if (unlikely(flags)) {
+		printk("We have flags?\n");
 		thd = switch_thread_slowpath(curr, flags, curr_spd, rthd_id, da, &ret_code, 
 					     &curr_sched_flags, &thd_sched_flags);
 		/* If we should return immediately back to this
@@ -860,6 +861,7 @@ cos_syscall_switch_thread_cont(int spd_id, unsigned short int rthd_id,
 		}
 	} else {
 		next_thd = switch_thread_parse_data_area(da, &ret_code);
+		printk("next thd: %d\n", next_thd);
 		if (unlikely(0 == next_thd)) {
 			printk("err: data area\n");
 			goto_err(ret_err, "data_area\n");
@@ -908,7 +910,8 @@ switch_thread_slowpath(struct thread *curr, unsigned short int flags, struct spd
 {
 	struct thread *thd;
 	unsigned short int next_thd;
-
+	printk("flags: %x\n", (unsigned int) flags);
+	
 	if (flags & (COS_SCHED_SYNC_BLOCK | COS_SCHED_SYNC_UNBLOCK)) {
 		next_thd = rthd_id;
 		/* FIXME: mask out all flags that can't apply here  */
@@ -916,6 +919,8 @@ switch_thread_slowpath(struct thread *curr, unsigned short int flags, struct spd
 		next_thd = switch_thread_parse_data_area(da, ret_code);
 		if (unlikely(!next_thd)) goto_err(ret_err, "data area\n");
 	}
+
+	printk("next thd: %d\n", next_thd);
 
 	thd = switch_thread_get_target(next_thd, curr, curr_spd, ret_code);
 	if (unlikely(NULL == thd)) goto_err(ret_err, "get_target");
@@ -1013,6 +1018,7 @@ switch_thread_slowpath(struct thread *curr, unsigned short int flags, struct spd
 		cda->cos_evt_notif.pending_cevt = 1;
 	}
 
+	printk("Slowpath success\n");
 	return thd;
 ret_err:
 	return curr;

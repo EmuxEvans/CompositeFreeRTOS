@@ -76,30 +76,6 @@ long jw_spd_id(void) {
 }
 
 
-static int create_timer(void)
-{
-	int bid, ret;
-	/* union sched_param sp[2] = {{.c = {.type = SCHEDP_TIMER}}, */
-	/* 			   {.c = {.type = SCHEDP_NOOP}}}; */
-
-	bid = jw_brand_cntl(COS_BRAND_CREATE_HW, 0, 0, jw_spd_id());
-	
-	timer_thread = jw_create_thread((int)timer_init, (int)bid, 0);
-
-	/* if (NULL == PERCPU_GET(sched_base_state)->timer) BUG(); */
-	/* if (0 > sched_add_thd_to_brand(cos_spd_id(), bid, PERCPU_GET(sched_base_state)->timer->id)) BUG(); */
-
-	if (jw_brand_cntl(COS_BRAND_ADD_THD, bid, timer_thread, 0)) {
-		jw_print("ERROR ADDING THREAD TO BRAND\n");
-		while(1);
-	}
-
-	jw_print("Core %ld: Timer thread has id %d with priority %s.\n", cos_cpuid(), thread_id, "t");
-	jw_brand_wire(bid, COS_HW_TIMER, 0);
-
-	return thread_id;
-}
-
 
 void print(char *str) {
 	cos_print(str, strlen(str));

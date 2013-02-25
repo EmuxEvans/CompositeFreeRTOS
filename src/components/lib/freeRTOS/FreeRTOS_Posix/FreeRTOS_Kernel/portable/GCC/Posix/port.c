@@ -122,7 +122,17 @@ typedef struct XPARAMS
 	void *pvParams;
 } xParams;
 
-int lastCreatedTask;
+volatile int lastCreatedTask;
+
+static volatile xInterruptsEnabled = pdTRUE;
+static volatile xPendingYield = pdFALSE;
+
+volatile uint64_t ticks; 
+volatile uint64_t wakeup_time;
+volatile uint64_t child_wakeup_time;
+
+static int timer_thread;
+
 
 /* 
  * Opposite to portSAVE_CONTEXT().  Interrupts will have been disabled during
@@ -167,7 +177,7 @@ portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, pdTASK_CODE
 	pxThisThreadParams->pvParams = pvParameters;
 
 	// enter a critical section here.
-	//	jw_lock();
+	// jw_lock();
 	int thd_id = jw_create_thread((int) prvWaitForStart, (int) pxThisThreadParams, 0);
 	lastCreatedTask = thd_id;
 
@@ -209,11 +219,7 @@ int prvGetThreadHandle( xTaskHandle task_handle) {
 	return 0;
 }
 
-/*
- * Manual context switch.  
- */
-void vPortYield( void )
-{
+void vPortCosSwitchThread(int flags) {
 	jw_print("Yielding from the port.\n");
 
 	//	jw_lock();
@@ -232,10 +238,16 @@ void vPortYield( void )
 
 	//	jw_unlock();
 	
-	jw_switch_thread(next_thd, 0);
-	
+	jw_switch_thread(next_thd, flags);
 
-	
+}
+
+/*
+ * Manual context switch.  
+ */
+void vPortYield( void )
+{
+	vPortCosSwitchThread(0);
 	return;
 }
 /*-----------------------------------------------------------*/
@@ -246,22 +258,73 @@ void vPortYield( void )
  * difference from vPortYield() is the tick count is incremented as the
  * call comes from the tick ISR.
  */
-//void vPortYieldFromTick( void ) __attribute__ ( ( naked ) );
 void vPortYieldFromTick( void )
 {
 	/* Save context, increment tick (vtaskincrementtick()), switch context, restore context */
+	vPortCosSwitchThread(COS_SCHED_BRAND_WAIT);
 	return;
 }
 /*-----------------------------------------------------------*/
+
+
+static int create_timer(void)
+{
+	int bid, ret;
+	/* union sched_param sp[2] = {{.c = {.type = SCHEDP_TIMER}}, */
+	/* 			   {.c = {.type = SCHEDP_NOOP}}}; */
+
+	bid = jw_brand_cntl(COS_BRAND_CREATE_HW, 0, 0, jw_spd_id());
+	
+	timer_thread = jw_create_thread((int)timer_init, (int)bid, 0);
+
+	/* if (NULL == PERCPU_GET(sched_base_state)->timer) BUG(); */
+	/* if (0 > sched_add_thd_to_brand(cos_spd_id(), bid, PERCPU_GET(sched_base_state)->timer->id)) BUG(); */
+
+	if (jw_brand_cntl(COS_BRAND_ADD_THD, bid, timer_thread, 0)) {
+		jw_print("ERROR ADDING THREAD TO BRAND\n");
+		while(1);
+	}
+
+	jw_print("Core %ld: Timer thread has id %d with priority %s.\n", cos_cpuid(), thread_id, "t");
+	jw_brand_wire(bid, COS_HW_TIMER, 0);
+
+	return thread_id;
+}
+
+void timer_tick (void) {
+	while(1) {
+		jw_lock();
+		//check if we're done running here. for now, forget it.
+		ticks++;
+		
+	}
+}
+
+void timer_init(void) {
+	ticks = 0;
+	wakeup_time = 0;
+	child_wakeup_time = 0;
+	timer_tick();
+	// should never get here
+	BUG();
+}
 
 /*
  * Setup timer 1 compare match A to generate a tick interrupt.
  */
 static void prvSetupTimerInterrupt( void )
 {
+	//	create_timer();
 	return;
 }
 
+static void vPortDisableInterrupts(void) {
+	xInterruptsEnabled = pdFALSE;
+}
+
+static void vPortEnableInterrupts(void) {
+	xInterruptsEnabled = pdTRUE;
+}
 
 portBASE_TYPE xPortStartScheduler( void )
 {
@@ -269,8 +332,8 @@ portBASE_TYPE xPortStartScheduler( void )
 	// and then restore the context of the first task that is going to run
 	// and start it.
 	jw_print("Starting freeRTOS scheduler\n");
-
-	//vPortEnableInterrupts();
+	//	prvSetupTimerInterrupt()
+	vPortEnableInterrupts();
 	int first_thread = prvGetThreadHandle(xTaskGetCurrentTaskHandle()); 
 	jw_print("First thread: %d\n", first_thread);
 	jw_switch_thread(first_thread, 0);

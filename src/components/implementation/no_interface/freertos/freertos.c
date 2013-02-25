@@ -63,14 +63,53 @@ int jw_get_thread_id(void) {
 	return cos_get_thd_id();
 }
 
+int jw_brand_cntl(int a, int b, int c, int d) {
+	return cos_brand_cntl(a, b, c, d);
+}
+
+int jw_brand_wire(int a, int b, int c) {
+	return cos_brand_wire(a, b, c);
+}
+
+long jw_spd_id(void) {
+	return cos_spd_id();
+}
+
+
+static int create_timer(void)
+{
+	int bid, ret;
+	/* union sched_param sp[2] = {{.c = {.type = SCHEDP_TIMER}}, */
+	/* 			   {.c = {.type = SCHEDP_NOOP}}}; */
+
+	bid = jw_brand_cntl(COS_BRAND_CREATE_HW, 0, 0, jw_spd_id());
+	
+	timer_thread = jw_create_thread((int)timer_init, (int)bid, 0);
+
+	/* if (NULL == PERCPU_GET(sched_base_state)->timer) BUG(); */
+	/* if (0 > sched_add_thd_to_brand(cos_spd_id(), bid, PERCPU_GET(sched_base_state)->timer->id)) BUG(); */
+
+	if (jw_brand_cntl(COS_BRAND_ADD_THD, bid, timer_thread, 0)) {
+		jw_print("ERROR ADDING THREAD TO BRAND\n");
+		while(1);
+	}
+
+	jw_print("Core %ld: Timer thread has id %d with priority %s.\n", cos_cpuid(), thread_id, "t");
+	jw_brand_wire(bid, COS_HW_TIMER, 0);
+
+	return thread_id;
+}
+
+
 void print(char *str) {
 	cos_print(str, strlen(str));
 }
 
-static void freertos_ret_thd() { 
+static void freertos_ret_thd(void) { 
 	//	jw_print("freertos_ret_thd\n");
 	return; 
 }
+
 
 int sched_init(void);
 void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
@@ -89,6 +128,7 @@ void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
 		print("Unhandled fault in freertos component.\n");
 	case COS_UPCALL_BRAND_EXEC:
 		print("Brand exec upcall in freertos component\n");
+		timer_tick();
 		break;
 	case COS_UPCALL_BRAND_COMPLETE:
 		print("Brand complete upcall in freertos component\n");

@@ -111,8 +111,8 @@ extern "C" {
 /* Critical section management. */
 #define portENTER_CRITICAL() jw_lock()
 #define portEXIT_CRITICAL() jw_unlock()
-#define portDISABLE_INTERRUPTS() //jw_lock()
-#define portENABLE_INTERRUPTS() //jw_unlock()
+#define portDISABLE_INTERRUPTS() vPortDisableInterrupts()
+#define portENABLE_INTERRUPTS() vPortEnableInterrupts()
 /*-----------------------------------------------------------*/
 
 /* Architecture specifics. */

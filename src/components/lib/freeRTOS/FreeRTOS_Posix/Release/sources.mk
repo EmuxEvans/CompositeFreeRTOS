@@ -11,7 +11,7 @@ OBJS :=
 C_DEPS := 
 EXECUTABLES := 
 DIETINC := -I/home/wittrock/research/composite/src/components/lib/dietlibc-0.29/include/
-COS_COMP_INC := -I/home/wittrock/research/composite/src/components/include
+COS_COMP_INC := -I/home/wittrock/research/composite/src/components/include -I/home/wittrock/research/composite/src/kernel/include/shared/cos_types.h
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \

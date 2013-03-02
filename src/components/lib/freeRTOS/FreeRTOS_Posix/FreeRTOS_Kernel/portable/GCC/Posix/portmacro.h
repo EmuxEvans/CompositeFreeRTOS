@@ -109,6 +109,9 @@ extern "C" {
 /*-----------------------------------------------------------*/	
 
 /* Critical section management. */
+extern void vPortDisableInterrupts(void);
+extern void vPortEnableInterrupts(void);
+
 #define portENTER_CRITICAL() jw_lock()
 #define portEXIT_CRITICAL() jw_unlock()
 #define portDISABLE_INTERRUPTS() vPortDisableInterrupts()

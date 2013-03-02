@@ -129,7 +129,7 @@ short sError = pdFALSE;
 
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
-	jw_print("vCompetingMathTask1\n");
+	//jw_print("vCompetingMathTask1\n");
 	jw_print(pcTaskStartMsg);
 
 	/* The variable this task increments to show it is still running is passed in 
@@ -155,7 +155,7 @@ short sError = pdFALSE;
 			jw_print(pcTaskFailMsg);
 			sError = pdTRUE;
 		} else {
-			jw_print("Math task 1 calculation successful\n");
+			//			jw_print("Math task 1 calculation successful\n");
 		}
 
 		if( sError == pdFALSE )
@@ -203,6 +203,8 @@ short sError = pdFALSE;
 		{
 			vPrintDisplayMessage( &pcTaskFailMsg );
 			sError = pdTRUE;
+		} else { 
+			//			jw_print("Math task 2 successful\n");
 		}
 
 		if( sError == pdFALSE )
@@ -256,7 +258,7 @@ short sError = pdFALSE;
 			dTotal1 += ( portDOUBLE ) usPosition + 5.5;	
 		}
 
-		jw_print("yielding from math task 3\n");
+		//		jw_print("yielding from math task 3\n");
 		taskYIELD();
 
 		for( usPosition = 0; usPosition < usArraySize; usPosition++ )
@@ -269,6 +271,8 @@ short sError = pdFALSE;
 		{
 			vPrintDisplayMessage( &pcTaskFailMsg );
 			sError = pdTRUE;
+		} else { 
+			//			jw_print("Math task 3 successful\n");
 		}
 
 		taskYIELD();
@@ -317,7 +321,7 @@ short sError = pdFALSE;
 			dTotal1 += ( portDOUBLE ) usPosition * 12.123;	
 		}
 
-		jw_print("yielding from task 4\n");
+		//		jw_print("yielding from task 4\n");
 		taskYIELD();
 
 		for( usPosition = 0; usPosition < usArraySize; usPosition++ )
@@ -330,6 +334,8 @@ short sError = pdFALSE;
 		{
 			vPrintDisplayMessage( &pcTaskFailMsg );
 			sError = pdTRUE;
+		} else {
+			//			jw_print("Math task 4 successful\n");
 		}
 
 		taskYIELD();

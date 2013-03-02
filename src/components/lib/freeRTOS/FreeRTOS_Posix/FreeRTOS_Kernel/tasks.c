@@ -1817,7 +1817,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 			the list, and an occasional incorrect value will not matter.  If
 			the ready list at the idle priority contains more than one task
 			then a task other than the idle task is ready to execute. */
-			jw_print("Idle task may be yielding\n");
+			//			jw_print("Idle task may be yielding\n");
 			if( listCURRENT_LIST_LENGTH( &( pxReadyTasksLists[ tskIDLE_PRIORITY ] ) ) > ( unsigned portBASE_TYPE ) 1 )
 			{
 				taskYIELD();
@@ -1828,7 +1828,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 		#if ( configUSE_IDLE_HOOK == 1 )
 		{
 			extern void vApplicationIdleHook( void );
-			jw_print("Calling application idle hook!\n");
+			//			jw_print("Calling application idle hook!\n");
 			/* Call the user defined function from within the idle task.  This
 			allows the application designer to add background functionality
 			without the overhead of a separate task.

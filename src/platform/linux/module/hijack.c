@@ -1515,6 +1515,7 @@ int chal_attempt_brand(struct thread *brand)
 
 			event_record("normal (non-syscall/idle interrupting) upcall processed", 
 				     thd_get_id(cos_current), thd_get_id(next));
+			printk("Did something to a brand on thread: %d\n", thd_get_id(next));
 		} else {
 			cos_meas_event(COS_MEAS_INT_STI_SYSEXIT);
 		}
@@ -1547,8 +1548,10 @@ static void timer_interrupt(unsigned long data)
 {
 	BUG_ON(cos_thd_per_core[get_cpuid()].cos_thd == NULL);
 	mod_timer_pinned(&timer[get_cpuid()], jiffies+1);
+	printk("Timer interrupt!\n");
 
 	if (!(cos_timer_brand_thd[get_cpuid()] && cos_timer_brand_thd[get_cpuid()]->upcall_threads)) {
+		printk("Timer interrupt but no brand thread...\n");
 		return;
 	}
 
@@ -1559,6 +1562,7 @@ static void timer_interrupt(unsigned long data)
 
 void register_timers(void)
 {
+	printk("calling register_timers...\n");
 	assert(!timer[get_cpuid()].function);
 	init_timer(&timer[get_cpuid()]);
 	timer[get_cpuid()].function = timer_interrupt;

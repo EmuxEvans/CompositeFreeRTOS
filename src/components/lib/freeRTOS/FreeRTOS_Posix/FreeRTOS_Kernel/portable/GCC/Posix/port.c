@@ -69,6 +69,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include <jw_freertos.h>
+#include <cos_types.h>
+#include <inttypes.h>
 
 /*-----------------------------------------------------------
  * Implementation of functions defined in portable.h for the AVR port.
@@ -122,17 +124,17 @@ typedef struct XPARAMS
 	void *pvParams;
 } xParams;
 
-volatile int lastCreatedTask;
+static volatile int lastCreatedTask;
 
-static volatile xInterruptsEnabled = pdTRUE;
-static volatile xPendingYield = pdFALSE;
+static volatile portBASE_TYPE xInterruptsEnabled = pdTRUE;
+static volatile portBASE_TYPE xPendingYield = pdFALSE;
 
 volatile uint64_t ticks; 
 volatile uint64_t wakeup_time;
 volatile uint64_t child_wakeup_time;
 
-static int timer_thread;
-
+static int freertos_timer_thread;
+static int scheduler_done = 0;
 
 /* 
  * Opposite to portSAVE_CONTEXT().  Interrupts will have been disabled during
@@ -220,23 +222,23 @@ int prvGetThreadHandle( xTaskHandle task_handle) {
 }
 
 void vPortCosSwitchThread(int flags) {
-	jw_print("Yielding from the port.\n");
+	//	jw_print("Yielding from the port.\n");
 
-	//	jw_lock();
+	jw_lock();
 
-	jw_print("Acquired lock.\n");
+	//	jw_print("Acquired lock.\n");
 
 	int cur_thd_id = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
 	
 	vTaskSwitchContext();
 
-	jw_print("Switched context\n");
+	//	jw_print("Switched context\n");
 	
 	int next_thd = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
 	
-	jw_print("Yielding from thd %d to thd %d\n", cur_thd_id, next_thd);
+	//	jw_print("Yielding from thd %d to thd %d\n", cur_thd_id, next_thd);
 
-	//	jw_unlock();
+	jw_unlock();
 	
 	jw_switch_thread(next_thd, flags);
 
@@ -261,52 +263,34 @@ void vPortYield( void )
 void vPortYieldFromTick( void )
 {
 	/* Save context, increment tick (vtaskincrementtick()), switch context, restore context */
+	vTaskIncrementTick();
 	vPortCosSwitchThread(COS_SCHED_BRAND_WAIT);
 	return;
 }
 /*-----------------------------------------------------------*/
 
-
-static int create_timer(void)
-{
-	int bid, ret;
-	/* union sched_param sp[2] = {{.c = {.type = SCHEDP_TIMER}}, */
-	/* 			   {.c = {.type = SCHEDP_NOOP}}}; */
-
-	bid = jw_brand_cntl(COS_BRAND_CREATE_HW, 0, 0, jw_spd_id());
-	
-	timer_thread = jw_create_thread((int)timer_init, (int)bid, 0);
-
-	/* if (NULL == PERCPU_GET(sched_base_state)->timer) BUG(); */
-	/* if (0 > sched_add_thd_to_brand(cos_spd_id(), bid, PERCPU_GET(sched_base_state)->timer->id)) BUG(); */
-
-	if (jw_brand_cntl(COS_BRAND_ADD_THD, bid, timer_thread, 0)) {
-		jw_print("ERROR ADDING THREAD TO BRAND\n");
-		while(1);
-	}
-
-	jw_print("Core %ld: Timer thread has id %d with priority %s.\n", cos_cpuid(), thread_id, "t");
-	jw_brand_wire(bid, COS_HW_TIMER, 0);
-
-	return thread_id;
-}
-
 void timer_tick (void) {
 	while(1) {
-		jw_lock();
+		//		jw_lock();
+		jw_print("Got timer tick. Total ticks: %d\n", ticks);
 		//check if we're done running here. for now, forget it.
 		ticks++;
 		
+		vPortYieldFromTick();
 	}
 }
 
 void timer_init(void) {
+	jw_print("Timer init called...\n");
 	ticks = 0;
 	wakeup_time = 0;
 	child_wakeup_time = 0;
 	timer_tick();
+
 	// should never get here
-	BUG();
+	jw_print("ERROR ERROR ERROR IN TIMER_INIT: TIMER_TICK() RETURNED\n");
+	while(1);
+
 }
 
 /*
@@ -314,15 +298,15 @@ void timer_init(void) {
  */
 static void prvSetupTimerInterrupt( void )
 {
-	//	create_timer();
+	freertos_timer_thread = create_timer((int) timer_init);
 	return;
 }
 
-static void vPortDisableInterrupts(void) {
+void vPortDisableInterrupts(void) {
 	xInterruptsEnabled = pdFALSE;
 }
 
-static void vPortEnableInterrupts(void) {
+void vPortEnableInterrupts(void) {
 	xInterruptsEnabled = pdTRUE;
 }
 
@@ -332,12 +316,17 @@ portBASE_TYPE xPortStartScheduler( void )
 	// and then restore the context of the first task that is going to run
 	// and start it.
 	jw_print("Starting freeRTOS scheduler\n");
-	//	prvSetupTimerInterrupt()
 	vPortEnableInterrupts();
-	int first_thread = prvGetThreadHandle(xTaskGetCurrentTaskHandle()); 
-	jw_print("First thread: %d\n", first_thread);
-	jw_switch_thread(first_thread, 0);
-	
+	prvSetupTimerInterrupt();
+
+	jw_switch_thread(freertos_timer_thread, 0);
+
+	jw_print("Switched back to main from timer thread.\n");
+
+	/* int first_thread = prvGetThreadHandle(xTaskGetCurrentTaskHandle()); */
+	/* jw_print("First thread: %d\n", first_thread); */
+	/* jw_switch_thread(first_thread, 0); */
+
 	return 0;
 }
 	

@@ -10,7 +10,7 @@
 
 typedef void (*crt_thd_fn_t)(void *);
 
-volatile int init_thd;
+static volatile int init_thd = -1;
 
 #define ARG_STRLEN 512
 
@@ -35,7 +35,7 @@ jw_print(char *fmt, ...)
 }
 
 void jw_lock() {
-	jw_print("taking lock with jw_lock\n");
+	//	jw_print("taking lock with jw_lock\n");
 	if (cos_sched_lock_take()) {
 		jw_print("Couldn't take lock!\n\n");
 		BUG();
@@ -43,7 +43,7 @@ void jw_lock() {
 }
 
 void jw_unlock() {
-	jw_print("Releasing lock!\n");
+	//	jw_print("Releasing lock!\n");
 	if (cos_sched_lock_release()) {
 		BUG();
 	}
@@ -55,7 +55,7 @@ int jw_create_thread(int a, int b, int c) {
 }
 
 int jw_switch_thread(int a, int b) {
-	jw_print("Switching threads from %d to %d\n", cos_get_thd_id(), a);
+	//	jw_print("Switching threads from %d to %d\n", cos_get_thd_id(), a);
 	return cos_switch_thread(a, b);
 }
 
@@ -75,18 +75,99 @@ long jw_spd_id(void) {
 	return cos_spd_id();
 }
 
+void freertos_sched_set_evt_urgency(u8_t evt_id, u16_t urgency)
+{
+	struct cos_sched_events *evt;
+	u32_t old, new;
+	u32_t *ptr;
+	//struct cos_se_values *se;
 
+	assert(evt_id < NUM_SCHED_EVTS);
+
+	evt = &PERCPU_GET(cos_sched_notifications)->cos_events[evt_id];
+	ptr = &COS_SCHED_EVT_VALS(evt);
+
+	/* Need to do this atomically with cmpxchg as next and flags
+	 * are in the same word as the urgency.
+	 */
+	while (1) {
+		old = *ptr;
+		new = old;
+		/* 
+		 * FIXME: Seems as though GCC cannot handle this with
+		 * -O2; not picking up the alias for some odd reason:
+		 *
+		 * se = (struct cos_se_values*)&new;
+		 * se->urgency = urgency;
+		 */
+		new &= 0xFFFF;
+		new |= urgency<<16;
+		
+		if (cos_cmpxchg(ptr, (long)old, (long)new) == (long)new) break;
+	}
+
+	return;
+}
+
+int create_timer(int timer_init)
+{
+	jw_print("Creating timer\n");
+	int bid, ret, timer_thread;
+
+
+	bid = jw_brand_cntl(COS_BRAND_CREATE_HW, 0, 0, jw_spd_id());
+	
+	timer_thread = jw_create_thread((int)timer_init, (int)bid, 0);
+
+	/* if (NULL == PERCPU_GET(sched_base_state)->timer) BUG(); */
+	/* if (0 > sched_add_thd_to_brand(cos_spd_id(), bid, PERCPU_GET(sched_base_state)->timer->id)) BUG(); */
+
+	if (jw_brand_cntl(COS_BRAND_ADD_THD, bid, timer_thread, 0) < 0) {
+		jw_print("ERROR ADDING THREAD TO BRAND\n");
+		while(1);
+	} else {
+		jw_print("added thread to brand\n");
+	}
+
+	jw_print("Timer thread has id %d with priority %s.\n", timer_thread, "t");
+	jw_brand_wire(bid, COS_HW_TIMER, 0);
+
+	int i;
+	for (i = 1; i < NUM_SCHED_EVTS; i++) {
+		struct cos_sched_events *se;
+		se = &PERCPU_GET(cos_sched_notifications)->cos_events[i];
+
+		if (COS_SCHED_EVT_FLAGS(se) & COS_SCHED_EVT_FREE) {
+			COS_SCHED_EVT_FLAGS(se) &= ~COS_SCHED_EVT_FREE;
+
+			if (cos_sched_cntl(COS_SCHED_THD_EVT, timer_thread, i)) {
+				jw_print("Mapping thread to event failed.\n");
+				COS_SCHED_EVT_FLAGS(se) |= COS_SCHED_EVT_FREE;
+				while (1);
+				return -1;
+			} 
+			jw_print("Found a free event slot: %d\n", i);
+			freertos_sched_set_evt_urgency(i, 1);
+			break;
+		}
+	}
+
+	if (i >= NUM_SCHED_EVTS) {
+		jw_print("Found no available event slots...\n");
+	}
+
+	return timer_thread;
+}
 
 void print(char *str) {
 	cos_print(str, strlen(str));
 }
 
 static void freertos_ret_thd(void) { 
-	//	jw_print("freertos_ret_thd\n");
 	return; 
 }
 
-
+extern void timer_tick (void);
 int sched_init(void);
 void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
 	switch (t) {
@@ -102,6 +183,7 @@ void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
 		break;
 	case COS_UPCALL_UNHANDLED_FAULT:
 		print("Unhandled fault in freertos component.\n");
+		break;
 	case COS_UPCALL_BRAND_EXEC:
 		print("Brand exec upcall in freertos component\n");
 		timer_tick();
@@ -111,6 +193,12 @@ void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
 		break;
 	case COS_UPCALL_BOOTSTRAP:
 		print("Bootstrap upcall in freertos component.\n");
+		if (init_thd > 0) {
+			jw_print("ALREADY INITIALIZED\n");
+			return;
+		} else { 
+			jw_print("Init thd: %d\n", init_thd);
+		}
 		sched_init();
 		break;
 	default:
@@ -143,6 +231,21 @@ int sched_init(void) {
 	init_thd = cos_get_thd_id();
 	if (parent_sched_child_cntl_thd(cos_spd_id())) BUG();
 	if (cos_sched_cntl(COS_SCHED_EVT_REGION, 0, (long)PERCPU_GET(cos_sched_notifications))) BUG();
+	
+	int i;
+	for (i = 0 ; i < NUM_SCHED_EVTS ; i++) {
+		struct cos_sched_events *se;
+
+		se = &PERCPU_GET(cos_sched_notifications)->cos_events[i];
+		if (i == 0) {
+			COS_SCHED_EVT_FLAGS(se) = 0;
+		} else {
+			COS_SCHED_EVT_FLAGS(se) = COS_SCHED_EVT_FREE;
+		}
+		COS_SCHED_EVT_NEXT(se) = 0;
+
+	}
+
 	(void) cos_init();
 	return 0;
 }

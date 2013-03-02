@@ -198,7 +198,7 @@ int freeRTOS_entry( void )
 void vApplicationIdleHook( void )
 {
 	/* The co-routines are executed in the idle task using the idle task hook. */
-	vCoRoutineSchedule();	/* Comment this out if not using Co-routines. */
+	//	vCoRoutineSchedule();	/* Comment this out if not using Co-routines. */
 
 /* #ifdef __GCC_POSIX__ */
 /* 	struct timespec xTimeToSleep, xTimeSlept; */

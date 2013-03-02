@@ -820,7 +820,7 @@ cos_syscall_switch_thread_cont(int spd_id, unsigned short int rthd_id,
 
 	*preempt = 0;
 	curr = core_get_curr_thd();
-	printk("thd %d, switch thd core %d\n", thd_get_id(curr), get_cpuid()); 
+	//	printk("thd %d, switch thd core %d\n", thd_get_id(curr), get_cpuid()); 
 
 	curr_spd = thd_validate_get_current_spd(curr, spd_id);
 	if (unlikely(!curr_spd)) {
@@ -861,7 +861,7 @@ cos_syscall_switch_thread_cont(int spd_id, unsigned short int rthd_id,
 		}
 	} else {
 		next_thd = switch_thread_parse_data_area(da, &ret_code);
-		printk("next thd: %d\n", next_thd);
+		//		printk("next thd: %d\n", next_thd);
 		if (unlikely(0 == next_thd)) {
 			printk("err: data area\n");
 			goto_err(ret_err, "data_area\n");
@@ -962,6 +962,7 @@ switch_thread_slowpath(struct thread *curr, unsigned short int flags, struct spd
 		*curr_flags = COS_SCHED_EVT_BRAND_READY;
 
 		event_record("tailcall inv and switch to specified thread", thd_get_id(curr), thd_get_id(thd));
+		printk("tailcall inv and switch to specified thread", thd_get_id(curr), thd_get_id(thd));
 		report_upcall("f", curr);
 	}
 
@@ -1369,6 +1370,7 @@ cos_syscall_brand_upcall_cont(int spd_id, int thread_id_flags, int arg1, int arg
 //	static int first = 1;
 
 	thread_id = thread_id_flags>>16;
+	printk("brand_upcall thd_id: %d\n", thread_id);
 	flags = thread_id_flags & 0x0000FFFF;
 	curr_thd = core_get_curr_thd();
 
@@ -1553,9 +1555,15 @@ cos_syscall_brand_cntl(int spd_id, int op, u32_t bid_tid, spdid_t dest)
 		struct thread *brand_thd = verify_brand_thd(bid);
 		struct thread *t = thd_get_by_id(tid);
 
-		if (NULL == t || NULL == brand_thd) return -1;
-		if (NULL != t->thread_brand) return -1;
-		if (NULL != brand_thd->upcall_threads) return -1;
+		if (NULL == t || NULL == brand_thd) {
+			return -1;
+		}
+		if (NULL != t->thread_brand) {
+			return -1;
+		}
+		if (NULL != brand_thd->upcall_threads) {
+			return -1;
+		}
 		assert(!(t->flags & THD_STATE_UPCALL));
 
 		t->flags |= (THD_STATE_UPCALL | THD_STATE_ACTIVE_UPCALL);

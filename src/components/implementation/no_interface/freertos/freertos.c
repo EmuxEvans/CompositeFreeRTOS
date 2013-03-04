@@ -55,8 +55,12 @@ int jw_create_thread(int a, int b, int c) {
 }
 
 int jw_switch_thread(int a, int b) {
-	//	jw_print("Switching threads from %d to %d\n", cos_get_thd_id(), a);
+	//this is a hack. my apologies. should also lock here. 
+	freertos_clear_pending_events();
+
+	jw_print("Switching threads from %d to %d\n", cos_get_thd_id(), a);
 	return cos_switch_thread(a, b);
+	jw_print("Switched threads from %d to %d\n", cos_get_thd_id(), a);
 }
 
 int jw_get_thread_id(void) {
@@ -73,6 +77,13 @@ int jw_brand_wire(int a, int b, int c) {
 
 long jw_spd_id(void) {
 	return cos_spd_id();
+}
+
+void freertos_clear_pending_events(void) {
+	if (PERCPU_GET(cos_sched_notifications)->cos_evt_notif.pending_event) {
+		PERCPU_GET(cos_sched_notifications)->cos_evt_notif.pending_event = 0;
+
+	}
 }
 
 void freertos_sched_set_evt_urgency(u8_t evt_id, u16_t urgency)

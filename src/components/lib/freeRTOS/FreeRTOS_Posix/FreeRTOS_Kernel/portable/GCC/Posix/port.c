@@ -222,26 +222,20 @@ int prvGetThreadHandle( xTaskHandle task_handle) {
 }
 
 void vPortCosSwitchThread(int flags) {
-	//	jw_print("Yielding from the port.\n");
-
 	jw_lock();
-
-	//	jw_print("Acquired lock.\n");
 
 	int cur_thd_id = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
 	
 	vTaskSwitchContext();
-
-	//	jw_print("Switched context\n");
 	
 	int next_thd = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
 	
-	//	jw_print("Yielding from thd %d to thd %d\n", cur_thd_id, next_thd);
-
 	jw_unlock();
-	
-	jw_switch_thread(next_thd, flags);
 
+	if (cur_thd_id != next_thd) {
+		jw_print("Yielding from thd %d to thd %d\n", cur_thd_id, next_thd);	
+		jw_switch_thread(next_thd, flags);
+	}
 }
 
 /*
@@ -264,6 +258,7 @@ void vPortYieldFromTick( void )
 {
 	/* Save context, increment tick (vtaskincrementtick()), switch context, restore context */
 	vTaskIncrementTick();
+	freertos_clear_pending_events();
 	vPortCosSwitchThread(COS_SCHED_BRAND_WAIT);
 	return;
 }

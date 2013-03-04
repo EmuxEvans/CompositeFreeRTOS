@@ -155,7 +155,7 @@ short sError = pdFALSE;
 			jw_print(pcTaskFailMsg);
 			sError = pdTRUE;
 		} else {
-			//			jw_print("Math task 1 calculation successful\n");
+			jw_print("Math task 1 calculation successful\n");
 		}
 
 		if( sError == pdFALSE )
@@ -204,7 +204,7 @@ short sError = pdFALSE;
 			vPrintDisplayMessage( &pcTaskFailMsg );
 			sError = pdTRUE;
 		} else { 
-			//			jw_print("Math task 2 successful\n");
+			jw_print("Math task 2 successful\n");
 		}
 
 		if( sError == pdFALSE )
@@ -272,7 +272,7 @@ short sError = pdFALSE;
 			vPrintDisplayMessage( &pcTaskFailMsg );
 			sError = pdTRUE;
 		} else { 
-			//			jw_print("Math task 3 successful\n");
+			jw_print("Math task 3 successful\n");
 		}
 
 		taskYIELD();
@@ -335,7 +335,7 @@ short sError = pdFALSE;
 			vPrintDisplayMessage( &pcTaskFailMsg );
 			sError = pdTRUE;
 		} else {
-			//			jw_print("Math task 4 successful\n");
+			jw_print("Math task 4 successful\n");
 		}
 
 		taskYIELD();

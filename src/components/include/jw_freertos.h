@@ -11,3 +11,4 @@ extern int jw_brand_cntl(int a, int b, int c, int d);
 extern int jw_brand_wire(int a, int b, int c);
 extern long jw_spd_id(void);
 extern int create_timer(int timer_init);
+extern void freertos_clear_pending_events(void);

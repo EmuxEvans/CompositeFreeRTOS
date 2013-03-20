@@ -80,6 +80,8 @@ Changes from V1.2.3
 extern "C" {
 #endif
 
+#include <jw_freertos.h>
+
 /*-----------------------------------------------------------
  * Port specific definitions.  
  *

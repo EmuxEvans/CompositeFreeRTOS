@@ -58,9 +58,9 @@ int jw_switch_thread(int a, int b) {
 	//this is a hack. my apologies. should also lock here. 
 	freertos_clear_pending_events();
 
-	jw_print("Switching threads from %d to %d\n", cos_get_thd_id(), a);
+	//	jw_print("Switching threads from %d to %d\n", cos_get_thd_id(), a);
 	return cos_switch_thread(a, b);
-	jw_print("Switched threads from %d to %d\n", cos_get_thd_id(), a);
+	//	jw_print("Switched threads from %d to %d\n", cos_get_thd_id(), a);
 }
 
 int jw_get_thread_id(void) {
@@ -119,6 +119,8 @@ void freertos_sched_set_evt_urgency(u8_t evt_id, u16_t urgency)
 
 	return;
 }
+
+
 
 int create_timer(int timer_init)
 {

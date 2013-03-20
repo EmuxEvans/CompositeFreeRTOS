@@ -80,7 +80,7 @@ task.h is included from an application file. */
 void *pvPortMalloc( size_t xWantedSize )
 {
 	void *pvReturn;
-	jw_print("WRONG MALLOC, IDIOT\n");
+	//	jw_print("WRONG MALLOC, IDIOT\n");
 	vTaskSuspendAll();
 	{
 		pvReturn = malloc( xWantedSize );

@@ -152,8 +152,8 @@ void vMainQueueSendPassed( void )
 int freeRTOS_entry( void )
 {
 	/* CREATE ALL THE DEMO APPLICATION TASKS. */
-	vStartMathTasks( tskIDLE_PRIORITY );
-/* 	vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY ); */
+	/* vStartMathTasks( tskIDLE_PRIORITY ); */
+	vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY );
 /* 	vCreateBlockTimeTasks(); */
 /* 	vStartSemaphoreTasks( mainSEMAPHORE_TASK_PRIORITY ); */
 /* 	vStartMultiEventTasks(); */

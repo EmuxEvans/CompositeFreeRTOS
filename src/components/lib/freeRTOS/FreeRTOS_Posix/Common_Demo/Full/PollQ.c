@@ -106,6 +106,9 @@ static void vPolledQueueConsumer( void *pvParameters );
 
 /* Variables that are used to check that the tasks are still running with no errors. */
 static volatile short sPollingConsumerCount = 0, sPollingProducerCount = 0;
+
+/* variables to keep track of total latency for a test by JW on MQ performance.*/
+static u64_t total_latency = 0, latency_measurements = 0;
 /*-----------------------------------------------------------*/
 
 void vStartPolledQueueTasks( unsigned portBASE_TYPE uxPriority )
@@ -114,23 +117,25 @@ static xQueueHandle xPolledQueue;
 const unsigned portBASE_TYPE uxQueueSize = 10;
 
 	/* Create the queue used by the producer and consumer. */
-	xPolledQueue = xQueueCreate( uxQueueSize, ( unsigned portBASE_TYPE ) sizeof( unsigned short ) );
+	xPolledQueue = xQueueCreate( uxQueueSize, ( unsigned portBASE_TYPE ) sizeof( u64_t ) );
 
 	/* Spawn the producer and consumer. */
-	xTaskCreate( vPolledQueueConsumer, "QConsNB", pollqSTACK_SIZE, ( void * ) &xPolledQueue, uxPriority, NULL );
 	xTaskCreate( vPolledQueueProducer, "QProdNB", pollqSTACK_SIZE, ( void * ) &xPolledQueue, uxPriority, NULL );
+	xTaskCreate( vPolledQueueConsumer, "QConsNB", pollqSTACK_SIZE, ( void * ) &xPolledQueue, uxPriority, NULL );
+
 }
 /*-----------------------------------------------------------*/
 
 static void vPolledQueueProducer( void *pvParameters )
 {
-unsigned short usValue = 0, usLoop;
+u64_t usValue = 0, usLoop;
 xQueueHandle *pxQueue;
 const portTickType xDelay = ( portTickType ) 200 / portTICK_RATE_MS;
-const unsigned short usNumToProduce = 3;
+const unsigned short usNumToProduce = 10;
 const char * const pcTaskStartMsg = "Polled queue producer started.\r\n";
 const char * const pcTaskErrorMsg = "Could not post on polled queue.\r\n";
 short sError = pdFALSE;
+ u64_t tsc;
 
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
@@ -142,8 +147,9 @@ short sError = pdFALSE;
 	{		
 		for( usLoop = 0; usLoop < usNumToProduce; ++usLoop )
 		{
+			rdtscll(tsc);
 			/* Send an incrementing number on the queue without blocking. */
-			if( xQueueSendToBack( *pxQueue, ( void * ) &usValue, ( portTickType ) 0 ) != pdPASS )
+			if( xQueueSendToBack( *pxQueue, ( void * ) &tsc, ( portTickType ) 0 ) != pdPASS )
 			{
 				/* We should never find the queue full - this is an error. */
 				vPrintDisplayMessage( &pcTaskErrorMsg );
@@ -160,6 +166,7 @@ short sError = pdFALSE;
 
 				/* Update the value we are going to post next time around. */
 				++usValue;
+				/* jw_print("Produced message\n"); */
 			}
 		}
 
@@ -172,13 +179,13 @@ short sError = pdFALSE;
 
 static void vPolledQueueConsumer( void *pvParameters )
 {
-unsigned short usData, usExpectedValue = 0;
+u64_t usData, usExpectedValue = 0;
 xQueueHandle *pxQueue;
 const portTickType xDelay = ( portTickType ) 200 / portTICK_RATE_MS;
 const char * const pcTaskStartMsg = "Polled queue consumer started.\r\n";
 const char * const pcTaskErrorMsg = "Incorrect value received on polled queue.\r\n";
 short sError = pdFALSE;
-
+ u64_t cur_tsc, latency;
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
 
@@ -192,26 +199,41 @@ short sError = pdFALSE;
 		{
 			if( xQueueReceive( *pxQueue, &usData, ( portTickType ) 0 ) == pdPASS )
 			{
-				if( usData != usExpectedValue )
-				{
-					/* This is not what we expected to receive so an error has 
-					occurred. */
-					vPrintDisplayMessage( &pcTaskErrorMsg );
-					sError = pdTRUE;
-					/* Catch-up to the value we received so our next expected value 
-					should again be correct. */
-					usExpectedValue = usData;
+				/* jw_print("Consumed message\n"); */
+				/* if( usData != usExpectedValue ) */
+				/* { */
+				/* 	/\* This is not what we expected to receive so an error has  */
+				/* 	occurred. *\/ */
+				/* 	vPrintDisplayMessage( &pcTaskErrorMsg ); */
+				/* 	sError = pdTRUE; */
+				/* 	/\* Catch-up to the value we received so our next expected value  */
+				/* 	should again be correct. *\/ */
+				/* 	usExpectedValue = usData; */
+				/* } */
+				/* else */
+				/* { */
+				/* 	if( sError == pdFALSE ) */
+				/* 	{ */
+				/* 		/\* Only increment the check variable if no errors have  */
+				/* 		occurred. *\/ */
+				/* 		++sPollingConsumerCount; */
+				/* 	} */
+				/* } */
+				/* ++usExpectedValue; */
+				rdtscll(cur_tsc);
+				if (cur_tsc < usData) continue;
+
+				latency = cur_tsc - usData;
+				
+				total_latency += latency;
+				latency_measurements++;
+				++sPollingConsumerCount;
+				
+
+				if (latency_measurements % 100 == 0 && latency_measurements != 0) {
+					jw_print("Average latency for producer consumer queue: %llu\n", total_latency / latency_measurements);
 				}
-				else
-				{
-					if( sError == pdFALSE )
-					{
-						/* Only increment the check variable if no errors have 
-						occurred. */
-						++sPollingConsumerCount;
-					}
-				}
-				++usExpectedValue;
+				//				jw_print("Got the expected value in the queue.\n");
 			}
 		}
 

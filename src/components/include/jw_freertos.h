@@ -1,5 +1,7 @@
 #include <cos_types.h>
 
+#define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
+
 extern void jw_lock();
 extern void jw_unlock();
 

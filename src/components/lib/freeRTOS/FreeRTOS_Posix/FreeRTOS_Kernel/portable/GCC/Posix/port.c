@@ -72,43 +72,13 @@
 #include <cos_types.h>
 #include <inttypes.h>
 
-/*-----------------------------------------------------------
- * Implementation of functions defined in portable.h for the AVR port.
- *----------------------------------------------------------*/
-
-/* Start tasks with interrupts enables. */
-/* #define portFLAGS_INT_ENABLED					( ( portSTACK_TYPE ) 0x80 ) */
-
-/* /\* Hardware constants for timer 1. *\/ */
-/* #define portCLEAR_COUNTER_ON_MATCH				( ( unsigned char ) 0x08 ) */
-/* #define portPRESCALE_64							( ( unsigned char ) 0x03 ) */
-/* #define portCLOCK_PRESCALER						( ( unsigned long ) 64 ) */
-/* #define portCOMPARE_MATCH_A_INTERRUPT_ENABLE	( ( unsigned char ) 0x10 ) */
-
-/*-----------------------------------------------------------*/
-
-/* We require the address of the pxCurrentTCB variable, but don't want to know
-any details of its type. */
-/* typedef void tskTCB; */
-/* extern volatile tskTCB * volatile pxCurrentTCB; */
-
-/*-----------------------------------------------------------*/
-
-/* 
- * Macro to save all the general purpose registers, the save the stack pointer
- * into the TCB.  
- * 
- * The interrupts will have been disabled during the call to portSAVE_CONTEXT()
- * so we need not worry about reading/writing to the stack pointer. 
- */
-
 #define MAX_NUMBER_OF_TASKS 256
 
 #define portSAVE_CONTEXT()
 
-/* #define portDISABLE_INTERRUPTS() */
+#define portDISABLE_INTERRUPTS() vPortDisableInterrupts()
 
-/* #define portENABLE_INTERRUPTS() */
+#define portENABLE_INTERRUPTS() vPortEnableInterrupts()
 
 typedef struct taskMapping
 {
@@ -179,14 +149,13 @@ portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, pdTASK_CODE
 	pxThisThreadParams->pvParams = pvParameters;
 
 	// enter a critical section here.
-	// jw_lock();
+	jw_lock();
+
 	int thd_id = jw_create_thread((int) prvWaitForStart, (int) pxThisThreadParams, 0);
 	lastCreatedTask = thd_id;
-
 	jw_print("FreeRTOS started thd %d\n", thd_id);//.. switching to it...\n");
-	//	jw_switch_thread(thd_id, 0);
 	
-	//	jw_unlock();
+	jw_unlock();
 
 	return pxTopOfStack;
 }
@@ -199,6 +168,7 @@ void pvAddTaskMapping (int thread_id, xTaskHandle task_handle) {
 }
 
 void pvAddTaskHandle (void *pxTaskHandle) {
+	jw_print("Adding task handle, thread id: %d\n", lastCreatedTask);
 	pvAddTaskMapping((int) lastCreatedTask, (xTaskHandle) pxTaskHandle);
 }
 
@@ -222,6 +192,7 @@ int prvGetThreadHandle( xTaskHandle task_handle) {
 }
 
 void vPortCosSwitchThread(int flags) {
+
 	jw_lock();
 
 	int cur_thd_id = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
@@ -232,8 +203,13 @@ void vPortCosSwitchThread(int flags) {
 	
 	jw_unlock();
 
-	if (cur_thd_id != next_thd) {
-		jw_print("Yielding from thd %d to thd %d\n", cur_thd_id, next_thd);	
+	if (cur_thd_id != jw_get_thread_id()) {
+		// we have to be executing in the timer thread here.
+		//		jw_print("WTF: cur_thread_id in FreeRTOS (%d) != cos thread id (%d)\n", cur_thd_id, jw_get_thread_id());
+	}
+
+	if (jw_get_thread_id() != next_thd) {
+		//		jw_print("Switching from thd %d to thd %d\n", jw_get_thread_id(), next_thd);	
 		jw_switch_thread(next_thd, flags);
 	}
 }
@@ -243,6 +219,7 @@ void vPortCosSwitchThread(int flags) {
  */
 void vPortYield( void )
 {
+	//	jw_print("Manual yield...\n");
 	vPortCosSwitchThread(0);
 	return;
 }
@@ -267,7 +244,7 @@ void vPortYieldFromTick( void )
 void timer_tick (void) {
 	while(1) {
 		//		jw_lock();
-		jw_print("Got timer tick. Total ticks: %d\n", ticks);
+		//		jw_print("Got timer tick. Total ticks: %d\n", ticks);
 		//check if we're done running here. for now, forget it.
 		ticks++;
 		
@@ -303,6 +280,7 @@ void vPortDisableInterrupts(void) {
 
 void vPortEnableInterrupts(void) {
 	xInterruptsEnabled = pdTRUE;
+	
 }
 
 portBASE_TYPE xPortStartScheduler( void )

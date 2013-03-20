@@ -1031,6 +1031,7 @@ void vTaskStartScheduler( void )
 portBASE_TYPE xReturn;
 
 	/* Add the idle task at the lowest priority. */
+  jw_print("Starting the idle task....\n");
 	xReturn = xTaskCreate( prvIdleTask, ( signed char * ) "IDLE", tskIDLE_STACK_SIZE, ( void * ) NULL, ( tskIDLE_PRIORITY | portPRIVILEGE_BIT ), ( xTaskHandle * ) NULL );
 
 	if( xReturn == pdPASS )
@@ -1091,7 +1092,7 @@ signed portBASE_TYPE xTaskResumeAll( void )
 {
 register tskTCB *pxTCB;
 signed portBASE_TYPE xAlreadyYielded = pdFALSE;
- jw_print("Resuming all tasks\n");
+// jw_print("Resuming all tasks\n");
 	/* It is possible that an ISR caused a task to be removed from an event
 	list while the scheduler was suspended.  If this was the case then the
 	removed task will have been added to the xPendingReadyList.  Once the
@@ -1820,6 +1821,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 			//			jw_print("Idle task may be yielding\n");
 			if( listCURRENT_LIST_LENGTH( &( pxReadyTasksLists[ tskIDLE_PRIORITY ] ) ) > ( unsigned portBASE_TYPE ) 1 )
 			{
+				jw_print("Yielding from idle task: more than one entry in the ready task list.\n");
 				taskYIELD();
 			}
 		}
@@ -1834,7 +1836,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 			without the overhead of a separate task.
 			NOTE: vApplicationIdleHook() MUST NOT, UNDER ANY CIRCUMSTANCES,
 			CALL A FUNCTION THAT MIGHT BLOCK. */
-			vApplicationIdleHook();
+			//			vApplicationIdleHook();
 		}
 		#endif
 	}

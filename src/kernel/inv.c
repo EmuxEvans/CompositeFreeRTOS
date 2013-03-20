@@ -964,7 +964,6 @@ switch_thread_slowpath(struct thread *curr, unsigned short int flags, struct spd
 		*curr_flags = COS_SCHED_EVT_BRAND_READY;
 
 		event_record("tailcall inv and switch to specified thread", thd_get_id(curr), thd_get_id(thd));
-		printk("tailcall inv and switch to specified thread", thd_get_id(curr), thd_get_id(thd));
 		report_upcall("f", curr);
 	}
 
@@ -1021,7 +1020,7 @@ switch_thread_slowpath(struct thread *curr, unsigned short int flags, struct spd
 		cda->cos_evt_notif.pending_cevt = 1;
 	}
 
-	printk("Slowpath success\n");
+	//	printk("Slowpath success\n");
 	return thd;
 ret_err:
 	printk("Error in switch_thread slowpath, returning curr\n");

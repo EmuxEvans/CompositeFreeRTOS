@@ -290,30 +290,9 @@ sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd) { BUG(); return 0; }
 extern int freeRTOS_entry( void );
 void cos_init(void)
 {
-	vaddr_t *memory, test;
-	int i, j, k;
-	test = "Hello, World from component!\n";
-	print(test);
-	
-	j = 2;
-	k = 3;
-
-	jw_print("j: %d, k: %d, k_addr: %x\n", j, k, (unsigned int) &k);
-	
 	freeRTOS_entry();
 	
 	while(1);
 	
-	/* memory = NULL; */
-	/* for (i = 0; i < FREERTOS_MAX_MEMORY; i++) { */
-	/* 	print("Allocating page... \n"); */
-	/* 	vaddr_t page = cos_get_vas_page(); */
-	/* 	if (!memory) memory = page; */
-
-	/* 	if (cos_mmap_cntl(COS_MMAP_GRANT, 0, cos_spd_id(), page, i)) { */
-	/* 		print("Error allocating memory\n"); */
-	/* 		return; */
-	/* 	} */
-	/* } */
 	return;
 }

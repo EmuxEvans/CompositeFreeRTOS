@@ -361,16 +361,37 @@ sched_child_get_evt(spdid_t spdid, struct sched_child_evt *e, int idle, unsigned
 int 
 sched_child_cntl_thd(spdid_t spdid) 
 { 
-	//	cos_print("From llboot\n", 12);
 	if (cos_sched_cntl(COS_SCHED_PROMOTE_CHLD, 0, spdid)) {
-		//		BUG(); 
-		//	while(1);
+		BUG(); 
+		while(1);
 	}
-	/* printc("Grant thd %d to sched %d\n", cos_get_thd_id(), spdid); */
 	if (cos_sched_cntl(COS_SCHED_GRANT_SCHED, cos_get_thd_id(), spdid)) BUG();
 	return 0;
 }
 
-// XXX
+
 int 
-sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd) { BUG(); return 0; }
+sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd) { 
+	/*
+	 * - Create thread.
+	 * - enter thread in data structure to be checkpointed
+	 * - return control of thread to freeRTOS.
+	 * - have a feeling the answer is in cos_sched_base.c under same function.
+	 * - cos_list.h provides a linked-list implementation that looks like it should work
+	 *    -- ADD_LIST and REM_LIST are both implemented, wonderful. 
+	 * - going to need a thread list for every component. 
+	 * - when a component checkpoints, store those checkpoints somewhere. 
+	 * 
+	 *
+	 * Question: how should freeRTOS inform us of that thread's termination?
+	 * Question: do freeRTOS threads ever NEED to terminate?
+	 * Question: if they do, we should probably restore them, no?
+	 * Question: timer thread. oh shit.
+	 * Question: how do we deal with checkpoints taken after threads have terminated?
+	 *   - ideally there's a serialized data structure that can be saved and restored. 
+	 *   - how to do this generally?
+	 */
+
+	BUG();
+	return 0; 
+}

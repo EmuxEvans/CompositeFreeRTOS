@@ -85,6 +85,10 @@ void jw_checkpoint(void) {
 	checkpoint_checkpt(cos_spd_id());
 }
 
+void jw_restore_checkpoint(void) {
+	checkpoint_restore(cos_spd_id());
+}
+
 void freertos_clear_pending_events(void) {
 	if (PERCPU_GET(cos_sched_notifications)->cos_evt_notif.pending_event) {
 		PERCPU_GET(cos_sched_notifications)->cos_evt_notif.pending_event = 0;

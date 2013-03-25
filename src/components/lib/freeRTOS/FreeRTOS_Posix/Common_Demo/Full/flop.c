@@ -106,14 +106,14 @@ static volatile unsigned short usTaskCheck[ mathNUMBER_OF_TASKS ] = { ( unsigned
 
 void vStartMathTasks( unsigned portBASE_TYPE uxPriority )
 {
-	xTaskCreate( vCompetingMathTask1, "Math1", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 0 ] ), uxPriority, NULL );
-	xTaskCreate( vCompetingMathTask2, "Math2", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 1 ] ), uxPriority, NULL );
-	xTaskCreate( vCompetingMathTask3, "Math3", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 2 ] ), uxPriority, NULL );
-	xTaskCreate( vCompetingMathTask4, "Math4", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 3 ] ), uxPriority, NULL );
-	xTaskCreate( vCompetingMathTask1, "Math5", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 4 ] ), uxPriority, NULL );
-	xTaskCreate( vCompetingMathTask2, "Math6", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 5 ] ), uxPriority, NULL );
-	xTaskCreate( vCompetingMathTask3, "Math7", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 6 ] ), uxPriority, NULL );
-	xTaskCreate( vCompetingMathTask4, "Math8", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 7 ] ), uxPriority, NULL );
+	xTaskCreate( vCompetingMathTask1, "Math1", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 0 ] ), uxPriority + 1, NULL );
+	/* xTaskCreate( vCompetingMathTask2, "Math2", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 1 ] ), uxPriority, NULL ); */
+	/* xTaskCreate( vCompetingMathTask3, "Math3", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 2 ] ), uxPriority, NULL ); */
+	/* xTaskCreate( vCompetingMathTask4, "Math4", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 3 ] ), uxPriority, NULL ); */
+	/* xTaskCreate( vCompetingMathTask1, "Math5", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 4 ] ), uxPriority, NULL ); */
+	/* xTaskCreate( vCompetingMathTask2, "Math6", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 5 ] ), uxPriority, NULL ); */
+	/* xTaskCreate( vCompetingMathTask3, "Math7", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 6 ] ), uxPriority, NULL ); */
+	/* xTaskCreate( vCompetingMathTask4, "Math8", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 7 ] ), uxPriority, NULL ); */
 	jw_print("Created all tasks...\n");
 }
 /*-----------------------------------------------------------*/
@@ -126,7 +126,7 @@ const portDOUBLE dAnswer = ( 123.4567 + 2345.6789 ) * -918.222;
 const char * const pcTaskStartMsg = "Math task 1 started.\r\n";
 const char * const pcTaskFailMsg = "Math task 1 failed.\r\n";
 short sError = pdFALSE;
-
+ volatile int x = 0;
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
 	//jw_print("vCompetingMathTask1\n");
@@ -139,33 +139,36 @@ short sError = pdFALSE;
 	/* Keep performing a calculation and checking the result against a constant. */
 	for(;;)
 	{
-		d1 = 123.4567;
-		d2 = 2345.6789;
-		d3 = -918.222;
+		/* d1 = 123.4567; */
+		/* d2 = 2345.6789; */
+		/* d3 = -918.222; */
 
-		d4 = ( d1 + d2 ) * d3;
+		/* d4 = ( d1 + d2 ) * d3; */
 
-		taskYIELD();
+		/* taskYIELD(); */
 
-		/* If the calculation does not match the expected constant, stop the 
-		increment of the check variable. */
-		if( fabs( d4 - dAnswer ) > 0.001 )
-		{
-			vPrintDisplayMessage( &pcTaskFailMsg );
-			jw_print(pcTaskFailMsg);
-			sError = pdTRUE;
-		} else {
-			//			jw_print("Math task 1 calculation successful\n");
-		}
+		/* /\* If the calculation does not match the expected constant, stop the  */
+		/* increment of the check variable. *\/ */
+		/* if( fabs( d4 - dAnswer ) > 0.001 ) */
+		/* { */
+		/* 	vPrintDisplayMessage( &pcTaskFailMsg ); */
+		/* 	jw_print(pcTaskFailMsg); */
+		/* 	sError = pdTRUE; */
+		/* } else { */
+		/* 	jw_print("Math task 1 calculation successful\n"); */
+		/* } */
 
-		if( sError == pdFALSE )
-		{
-			/* If the calculation has always been correct, increment the check 
-			variable so we know this task is still running okay. */
-			( *pusTaskCheckVariable )++;
-		}
-
-		taskYIELD();
+		/* if( sError == pdFALSE ) */
+		/* { */
+		/* 	/\* If the calculation has always been correct, increment the check  */
+		/* 	variable so we know this task is still running okay. *\/ */
+		/* 	( *pusTaskCheckVariable )++; */
+		/* } */
+		
+		x++;
+		jw_print("x: %d\n", x);
+		/* taskYIELD(); */
+		
 	}
 }
 /*-----------------------------------------------------------*/

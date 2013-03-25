@@ -452,11 +452,13 @@ checkpoint_checkpt(spdid_t caller) {
 
 int
 checkpoint_restore(spdid_t caller) {
+	printc("restore checkpoint called... restoring...\n");
 	struct spd_local_md *md;
 	LOCK();
 	md = &local_md[caller];
 	assert(md);
 	memcpy(md->page_start, md->checkpt_region_start, md->page_end - md->page_start);
+	UNLOCK();
 	return 1;
 }
 

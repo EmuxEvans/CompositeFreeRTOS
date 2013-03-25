@@ -107,6 +107,7 @@ volatile uint64_t child_wakeup_time;
 static int freertos_timer_thread;
 static int scheduler_done = 0;
 
+
 /* 
  * Opposite to portSAVE_CONTEXT().  Interrupts will have been disabled during
  * the context save so we can write to the stack pointer. 
@@ -248,8 +249,14 @@ void timer_tick (void) {
 		//		jw_print("Got timer tick. Total ticks: %d\n", ticks);
 		//check if we're done running here. for now, forget it.
 		ticks++;
-		if (ticks % CHECKPOINT_INTERVAL == 0) {
+		if (ticks % CHECKPOINT_INTERVAL == 0 && ticks % 32 != 0) {
 			jw_checkpoint();
+		} 
+		
+		if (ticks % 32 == 0 && ticks > 0) {
+			jw_print("Restoring, ticks = %d\n", ticks);
+			jw_restore_checkpoint();
+			jw_print("done restoring\n");
 		}
 		vPortYieldFromTick();
 	}

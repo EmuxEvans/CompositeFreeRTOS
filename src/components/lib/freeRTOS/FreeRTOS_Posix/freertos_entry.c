@@ -148,12 +148,31 @@ void vMainQueueSendPassed( void )
 	return;
 }
 
+static void vCheckpointTask( void *pvParameters )
+{
+	const char * const pcTaskStartMsg = "Checkpoint task 1 started.\r\n";
+	volatile int x = 0;
+
+	jw_print(pcTaskStartMsg);
+
+	for(;;)
+	{
+		x++;
+		jw_print("x: %d\n", x);
+	}
+}
+
+
+void vStartCheckpointTask() {
+	xTaskCreate( vCheckpointTask, "Checkpoint1", 512, ( void * ) 0, tskIDLE_PRIORITY + 1, NULL );
+}
 
 int freeRTOS_entry( void )
 {
 	/* CREATE ALL THE DEMO APPLICATION TASKS. */
 	/* vStartMathTasks( tskIDLE_PRIORITY ); */
-	vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY );
+	vStartCheckpointTask();
+	/* vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY ); */
 /* 	vCreateBlockTimeTasks(); */
 /* 	vStartSemaphoreTasks( mainSEMAPHORE_TASK_PRIORITY ); */
 /* 	vStartMultiEventTasks(); */

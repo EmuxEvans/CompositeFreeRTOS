@@ -73,6 +73,7 @@
 #include <inttypes.h>
 
 #define MAX_NUMBER_OF_TASKS 256
+#define CHECKPOINT_INTERVAL 16
 
 #define portSAVE_CONTEXT()
 
@@ -247,7 +248,9 @@ void timer_tick (void) {
 		//		jw_print("Got timer tick. Total ticks: %d\n", ticks);
 		//check if we're done running here. for now, forget it.
 		ticks++;
-		
+		if (ticks % CHECKPOINT_INTERVAL == 0) {
+			jw_checkpoint();
+		}
 		vPortYieldFromTick();
 	}
 }

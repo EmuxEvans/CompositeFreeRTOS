@@ -18,6 +18,7 @@ struct cobj_header *hs[MAX_NUM_SPDS+1];
 /* interfaces */
 //#include <failure_notif.h>
 #include <cgraph.h>
+#include <checkpoint.h>
 
 /* local meta-data to track the components */
 struct spd_local_md {
@@ -25,6 +26,7 @@ struct spd_local_md {
 	vaddr_t comp_info;
 	char *page_start, *page_end;
 	struct cobj_header *h;
+	char *checkpt_region_start, checkpt_region_end;
 } local_md[MAX_NUM_SPDS+1];
 
 /* Component initialization info. */
@@ -151,8 +153,9 @@ boot_spd_end(struct cobj_header *h)
 static int 
 boot_spd_map_memory(struct cobj_header *h, spdid_t spdid, vaddr_t comp_info)
 {
-	unsigned int i, use_kmem;
+	unsigned int i, use_kmem, num_pages;
 	vaddr_t dest_daddr, prev_map;
+	char *checkpt_page, *dsrc = NULL;
 
 	local_md[spdid].spdid      = spdid;
 	local_md[spdid].h          = h;
@@ -160,7 +163,7 @@ boot_spd_map_memory(struct cobj_header *h, spdid_t spdid, vaddr_t comp_info)
 	local_md[spdid].comp_info  = comp_info;
 	for (i = 0 ; i < h->nsect ; i++) {
 		struct cobj_sect *sect;
-		char *dsrc;
+
 		int left;
 		
 		use_kmem   = 0;
@@ -168,6 +171,7 @@ boot_spd_map_memory(struct cobj_header *h, spdid_t spdid, vaddr_t comp_info)
 		if (sect->flags & COBJ_SECT_KMEM) use_kmem = 1;
 		dest_daddr = sect->vaddr;
 		left       = cobj_sect_size(h, i);
+
 		/* previous section overlaps with this one, don't remap! */
 		if (round_to_page(dest_daddr) == prev_map) {
 			left -= (prev_map + PAGE_SIZE - dest_daddr);
@@ -175,6 +179,7 @@ boot_spd_map_memory(struct cobj_header *h, spdid_t spdid, vaddr_t comp_info)
 		} 
 		while (left > 0) {
 			dsrc = cos_get_vas_page();
+			printc("dsrc: 0x%x\n", dsrc);
 			/* TODO: if use_kmem, we should allocate
 			 * kernel-accessible memory, rather than
 			 * normal user-memory */
@@ -184,9 +189,28 @@ boot_spd_map_memory(struct cobj_header *h, spdid_t spdid, vaddr_t comp_info)
 			prev_map = dest_daddr;
 			dest_daddr += PAGE_SIZE;
 			left       -= PAGE_SIZE;
+			num_pages++;
 		}
 	}
-	local_md[spdid].page_end = (void*)dest_daddr;
+
+	local_md[spdid].page_end = dsrc + PAGE_SIZE;
+
+	local_md[spdid].checkpt_region_start = cos_get_heap_ptr();
+	printc("page start %x\n", (unsigned int) local_md[spdid].page_start);
+	printc("page end   %x\n", (unsigned int) local_md[spdid].page_end);
+	printc("pages:     %u\n", (local_md[spdid].page_end - local_md[spdid].page_start) / PAGE_SIZE);
+	printc("checkpoint start: 0x%x\n", (unsigned int) local_md[spdid].checkpt_region_start);
+	
+	for (i = 0; i < num_pages; i++) {
+		checkpt_page = cos_get_vas_page();
+		if ((vaddr_t)checkpt_page != __mman_get_page(cos_spd_id(), (vaddr_t)checkpt_page, 0)) {
+			printc("JWW WTF\n");
+			BUG();
+		}
+		// Why on earth do I have to access this here for this to work? something to do with resetting page tables?
+		*(char *)checkpt_page = 1;
+	}
+	local_md[spdid].checkpt_region_end = checkpt_page + PAGE_SIZE;
 
 	return 0;
 }
@@ -412,6 +436,45 @@ failure_notif_fail(spdid_t caller, spdid_t failed)
 
 	UNLOCK();
 }
+
+void
+checkpoint_checkpt(spdid_t caller) {
+	printc("checkpoint called, copying memory!\n");
+	struct spd_local_md *md;
+	LOCK();
+	md = &local_md[caller];
+	assert(md);
+	printc("about to memcpy 0x%x bytes from 0x%x to 0x%x\n", md->page_end - md->page_start, md->page_start, md->checkpt_region_start);
+	memcpy(md->checkpt_region_start, md->page_start, (md->page_end - md->page_start));
+
+	UNLOCK();
+}
+
+int
+checkpoint_restore(spdid_t caller) {
+	struct spd_local_md *md;
+	LOCK();
+	md = &local_md[caller];
+	assert(md);
+	memcpy(md->page_start, md->checkpt_region_start, md->page_end - md->page_start);
+	return 1;
+}
+
+/* 
+ * fault_page_fault_handler() -> notification of the page fault; need
+ * to restore here via memcpy(page_chkpt, page_start,
+ * page_end-page_start) (these are in local_md)
+ * this is already in boot_deps.h under llboot.
+ */
+
+/* 
+ * create an interface chkpt_checkpoint or something like that to have
+ * freeRTOS checkpoint itself 
+ */
+
+/* 
+ * for testing, also have a function called chkpt_restore for freeRTOS to call
+ */
 
 struct deps { short int client, server; };
 struct deps *deps;

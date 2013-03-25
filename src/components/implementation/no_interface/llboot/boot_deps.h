@@ -371,5 +371,6 @@ sched_child_cntl_thd(spdid_t spdid)
 	return 0;
 }
 
+// XXX
 int 
 sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd) { BUG(); return 0; }

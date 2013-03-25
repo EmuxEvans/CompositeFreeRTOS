@@ -126,6 +126,10 @@ void *pvReturn = NULL;
 			block. */
 			pvReturn = &( xHeap.ucHeap[ xNextFreeByte ] );
 			xNextFreeByte += xWantedSize;
+		} else {
+			jw_print("Not enough memory to allocate requested size, %u, only have %u\n", xWantedSize, configTOTAL_HEAP_SIZE - xNextFreeByte);
+			jw_print("Heap size: %u\n", configTOTAL_HEAP_SIZE);
+			jw_print("Current bump pointer %u\n", xNextFreeByte);
 		}
 	}
 	//	jw_print("Resuming in pvPortMalloc()\n");

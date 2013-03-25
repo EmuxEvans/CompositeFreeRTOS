@@ -109,6 +109,10 @@ static volatile short sPollingConsumerCount = 0, sPollingProducerCount = 0;
 
 /* variables to keep track of total latency for a test by JW on MQ performance.*/
 static u64_t total_latency = 0, latency_measurements = 0;
+static u64_t total_interrupt_latency = 0, interrupt_measurements = 0;
+static volatile u64_t lastTSCval = 0;
+/* Low prio task to constantly check tsc */
+static void lowPrioRdtscTask( void *pvParameters );
 /*-----------------------------------------------------------*/
 
 void vStartPolledQueueTasks( unsigned portBASE_TYPE uxPriority )
@@ -121,21 +125,33 @@ const unsigned portBASE_TYPE uxQueueSize = 10;
 
 	/* Spawn the producer and consumer. */
 	xTaskCreate( vPolledQueueProducer, "QProdNB", pollqSTACK_SIZE, ( void * ) &xPolledQueue, uxPriority, NULL );
-	xTaskCreate( vPolledQueueConsumer, "QConsNB", pollqSTACK_SIZE, ( void * ) &xPolledQueue, uxPriority, NULL );
-
+	//xTaskCreate( vPolledQueueConsumer, "QConsNB", pollqSTACK_SIZE, ( void * ) &xPolledQueue, uxPriority, NULL );
+	/* Spawn low prio task */
+	xTaskCreate( lowPrioRdtscTask, "RdTSC", pollqSTACK_SIZE, (void *) 0, uxPriority - 1, NULL);
 }
 /*-----------------------------------------------------------*/
+
+static void lowPrioRdtscTask( void *pvParameters )
+{
+	// I HATE THEIR PROGRAMMING STYLE.
+	jw_print("Started tsc task\n");
+	for( ;; ) 
+	{
+		//		jw_print("Running tsc task\n");
+		rdtscll(lastTSCval);
+	}
+}
 
 static void vPolledQueueProducer( void *pvParameters )
 {
 u64_t usValue = 0, usLoop;
 xQueueHandle *pxQueue;
 const portTickType xDelay = ( portTickType ) 200 / portTICK_RATE_MS;
-const unsigned short usNumToProduce = 10;
+const unsigned short usNumToProduce = 1;
 const char * const pcTaskStartMsg = "Polled queue producer started.\r\n";
 const char * const pcTaskErrorMsg = "Could not post on polled queue.\r\n";
 short sError = pdFALSE;
- u64_t tsc;
+ u64_t tsc, interrupt_latency;
 
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
@@ -145,30 +161,40 @@ short sError = pdFALSE;
 
 	for( ;; )
 	{		
-		for( usLoop = 0; usLoop < usNumToProduce; ++usLoop )
-		{
-			rdtscll(tsc);
-			/* Send an incrementing number on the queue without blocking. */
-			if( xQueueSendToBack( *pxQueue, ( void * ) &tsc, ( portTickType ) 0 ) != pdPASS )
-			{
-				/* We should never find the queue full - this is an error. */
-				vPrintDisplayMessage( &pcTaskErrorMsg );
-				sError = pdTRUE;
-			}
-			else
-			{
-				if( sError == pdFALSE )
-				{
-					/* If an error has ever been recorded we stop incrementing the 
-					check variable. */
-					++sPollingProducerCount;
-				}
-
-				/* Update the value we are going to post next time around. */
-				++usValue;
-				/* jw_print("Produced message\n"); */
-			}
+		rdtscll(tsc);
+		if (tsc > lastTSCval && lastTSCval > 0) {
+			total_interrupt_latency += (tsc - lastTSCval);
+			jw_print("interrupt_latency: %llu\n", tsc - lastTSCval);
 		}
+		interrupt_measurements++;
+		if (interrupt_measurements % 10 == 0 && interrupt_measurements > 0) { 
+//			jw_print("Average interrupt latency: %llu\n", total_interrupt_latency / interrupt_measurements);
+		}
+
+		/* for( usLoop = 0; usLoop < usNumToProduce; ++usLoop ) */
+		/* { */
+		/* 	rdtscll(tsc); */
+		/* 	/\* Send an incrementing number on the queue without blocking. *\/ */
+		/* 	if( xQueueSendToBack( *pxQueue, ( void * ) &tsc, ( portTickType ) 0 ) != pdPASS ) */
+		/* 	{ */
+		/* 		/\* We should never find the queue full - this is an error. *\/ */
+		/* 		vPrintDisplayMessage( &pcTaskErrorMsg ); */
+		/* 		sError = pdTRUE; */
+		/* 	} */
+		/* 	else */
+		/* 	{ */
+		/* 		if( sError == pdFALSE ) */
+		/* 		{ */
+		/* 			/\* If an error has ever been recorded we stop incrementing the  */
+		/* 			check variable. *\/ */
+		/* 			++sPollingProducerCount; */
+		/* 		} */
+
+		/* 		/\* Update the value we are going to post next time around. *\/ */
+		/* 		++usValue; */
+		/* 		/\* jw_print("Produced message\n"); *\/ */
+		/* 	} */
+		/* } */
 
 		/* Wait before we start posting again to ensure the consumer runs and 
 		empties the queue. */
@@ -230,7 +256,7 @@ short sError = pdFALSE;
 				++sPollingConsumerCount;
 				
 
-				if (latency_measurements % 100 == 0 && latency_measurements != 0) {
+				if (latency_measurements % 50 == 0 && latency_measurements != 0) {
 					jw_print("Average latency for producer consumer queue: %llu\n", total_latency / latency_measurements);
 				}
 				//				jw_print("Got the expected value in the queue.\n");

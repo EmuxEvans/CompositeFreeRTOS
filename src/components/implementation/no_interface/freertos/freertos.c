@@ -1,9 +1,11 @@
 #include <string.h>
 #include <cos_component.h>
 #include <jw_freertos.h>
+
 #include <bitmap.h>
 #include <cos_debug.h>
 #include <stdio.h>
+#include <checkpoint.h>
 
 #include "../../sched/cos_sched_sync.h"
 #include "../../sched/cos_sched_ds.h"
@@ -77,6 +79,10 @@ int jw_brand_wire(int a, int b, int c) {
 
 long jw_spd_id(void) {
 	return cos_spd_id();
+}
+
+void jw_checkpoint(void) {
+	checkpoint_checkpt(cos_spd_id());
 }
 
 void freertos_clear_pending_events(void) {

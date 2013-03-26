@@ -71,7 +71,8 @@ const char *INITMM         = "mm.o"; // this is set to the first listed memory m
 const char *MPD_MGR        = "cg.o"; // the component graph!
 const char *CONFIG_COMP    = "schedconf.o";
 const char *BOOT_COMP      = "boot.o";
-const char *LLBOOT_COMP    = "llboot.o";
+const char *LLBOOT_COMP    = "crboot.o"; // JWW
+const char *CRBOOT_COMP    = "crboot.o"; // JWW
 const char *INIT_FILE      = "initfs.o";
 const char *INIT_FILE_NAME = "init.tar";
 

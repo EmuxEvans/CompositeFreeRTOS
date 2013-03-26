@@ -51,9 +51,11 @@ void jw_unlock() {
 	}
 }
 
+extern int parent_sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd);
 int jw_create_thread(int a, int b, int c) {
 	jw_print("Creating thread, current thd %d\n", cos_get_thd_id());
 	return cos_create_thread(a, b, c);
+	//	parent_sched_child_thd_crt(cos_spd_id(), (spdid_t) b);
 }
 
 int jw_switch_thread(int a, int b) {

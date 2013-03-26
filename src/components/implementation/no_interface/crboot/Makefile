@@ -1,8 +1,8 @@
 C_OBJS=booter.o
-ASM_OBJS=
-COMPONENT=boot.o
-INTERFACES=cinfo failure_notif cgraph
-DEPENDENCIES=sched printc mem_mgr
+ASM_OBJS=cos_asm_scheduler.o
+COMPONENT=crboot.o
+INTERFACES=cgraph pgfault checkpoint sched_hier
+DEPENDENCIES=
 IF_LIB=
 ADDITIONAL_LIBS=-lcobj_format
 

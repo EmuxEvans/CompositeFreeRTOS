@@ -18,7 +18,7 @@ struct cobj_header *hs[MAX_NUM_SPDS+1];
 /* interfaces */
 //#include <failure_notif.h>
 #include <cgraph.h>
-#include <checkpoint.h>
+//#include <checkpoint.h>
 
 /* local meta-data to track the components */
 struct spd_local_md {
@@ -268,6 +268,31 @@ boot_spd_map(struct cobj_header *h, spdid_t spdid, vaddr_t comp_info)
 	return 0;
 }
 
+void
+checkpoint_checkpt(spdid_t caller) {
+	printc("checkpoint called, copying memory!\n");
+	struct spd_local_md *md;
+	LOCK();
+	md = &local_md[caller];
+	assert(md);
+	printc("about to memcpy 0x%x bytes from 0x%x to 0x%x\n", md->page_end - md->page_start, md->page_start, md->checkpt_region_start);
+	memcpy(md->checkpt_region_start, md->page_start, (md->page_end - md->page_start));
+
+	UNLOCK();
+}
+
+int
+checkpoint_restore(spdid_t caller) {
+	printc("restore checkpoint called... restoring...\n");
+	struct spd_local_md *md;
+	LOCK();
+	md = &local_md[caller];
+	assert(md);
+	memcpy(md->page_start, md->checkpt_region_start, md->page_end - md->page_start);
+	UNLOCK();
+	return 1;
+}
+
 static int 
 boot_spd_reserve_caps(struct cobj_header *h, spdid_t spdid)
 {
@@ -436,47 +461,6 @@ failure_notif_fail(spdid_t caller, spdid_t failed)
 
 	UNLOCK();
 }
-
-void
-checkpoint_checkpt(spdid_t caller) {
-	printc("checkpoint called, copying memory!\n");
-	struct spd_local_md *md;
-	LOCK();
-	md = &local_md[caller];
-	assert(md);
-	printc("about to memcpy 0x%x bytes from 0x%x to 0x%x\n", md->page_end - md->page_start, md->page_start, md->checkpt_region_start);
-	memcpy(md->checkpt_region_start, md->page_start, (md->page_end - md->page_start));
-
-	UNLOCK();
-}
-
-int
-checkpoint_restore(spdid_t caller) {
-	printc("restore checkpoint called... restoring...\n");
-	struct spd_local_md *md;
-	LOCK();
-	md = &local_md[caller];
-	assert(md);
-	memcpy(md->page_start, md->checkpt_region_start, md->page_end - md->page_start);
-	UNLOCK();
-	return 1;
-}
-
-/* 
- * fault_page_fault_handler() -> notification of the page fault; need
- * to restore here via memcpy(page_chkpt, page_start,
- * page_end-page_start) (these are in local_md)
- * this is already in boot_deps.h under llboot.
- */
-
-/* 
- * create an interface chkpt_checkpoint or something like that to have
- * freeRTOS checkpoint itself 
- */
-
-/* 
- * for testing, also have a function called chkpt_restore for freeRTOS to call
- */
 
 struct deps { short int client, server; };
 struct deps *deps;

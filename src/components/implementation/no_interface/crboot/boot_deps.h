@@ -369,7 +369,66 @@ sched_child_cntl_thd(spdid_t spdid)
 	return 0;
 }
 
+/* 
+ * fault_page_fault_handler() -> notification of the page fault; need
+ * to restore here via memcpy(page_chkpt, page_start,
+ * page_end-page_start) (these are in local_md)
+ * this is already in boot_deps.h under llboot.
+ */
+
+/* 
+ * create an interface chkpt_checkpoint or something like that to have
+ * freeRTOS checkpoint itself 
+ */
+
+/* 
+ * for testing, also have a function called chkpt_restore for freeRTOS to call
+ */
+
+
+/* void */
+/* checkpoint_start_fn(void *fn) { */
+	
+/* } */
+
+/* void  */
+/* checkpoint_thd_crt(spdid_t spdid, void *fn)  */
+/* { */
+/* 	/\* */
+/* 	 * - Create thread. */
+/* 	 * - enter thread in data structure to be checkpointed */
+/* 	 * - return control of thread to freeRTOS. */
+/* 	 * - have a feeling the answer is in cos_sched_base.c under same function. */
+/* 	 * - cos_list.h provides a linked-list implementation that looks like it should work */
+/* 	 *    -- ADD_LIST and REM_LIST are both implemented, wonderful.  */
+/* 	 * - going to need a thread list for every component.  */
+/* 	 * - when a component checkpoints, store those checkpoints somewhere.  */
+/* 	 *  */
+/* 	 * */
+/* 	 * Question: how should freeRTOS inform us of that thread's termination? */
+/* 	 * Question: do freeRTOS threads ever NEED to terminate? */
+/* 	 * Question: if they do, we should probably restore them, no? */
+/* 	 * Question: timer thread. oh shit. */
+/* 	 * Question: how do we deal with checkpoints taken after threads have terminated? */
+/* 	 *   - ideally there's a serialized data structure that can be saved and restored.  */
+/* 	 *   - how to do this generally? */
+/* 	 *\/ */
+/* 	int tid; */
+
+/* 	LOCK(); */
+/* 	tid = cos_create_thread((int) fn, (int)dest_spd, 0); */
+/* 	assert(tid > 0); */
+/* 	// add it to some sort of DS here. */
+/* 	UNLOCK(); */
+	
+/* } */
+
 int 
-sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd) { BUG(); return 0; }
+sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd) 
+{ 
+	
+	BUG();
+	return 0; 
+}
 
 

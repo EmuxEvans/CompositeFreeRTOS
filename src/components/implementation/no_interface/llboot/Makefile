@@ -1,7 +1,7 @@
 C_OBJS=booter.o
 ASM_OBJS=cos_asm_scheduler.o
 COMPONENT=llboot.o
-INTERFACES=cgraph pgfault checkpoint sched_hier
+INTERFACES=cgraph pgfault sched_hier
 DEPENDENCIES=
 IF_LIB=
 ADDITIONAL_LIBS=-lcobj_format

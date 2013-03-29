@@ -10,6 +10,16 @@
 extern struct cos_component_information cos_comp_info;
 struct cobj_header *hs[MAX_NUM_SPDS+1];
 
+/* local meta-data to track the components */
+struct spd_local_md {
+	spdid_t spdid;
+	vaddr_t comp_info;
+	char *page_start, *page_end;
+	struct cobj_header *h;
+	char *checkpt_region_start, checkpt_region_end;
+} local_md[MAX_NUM_SPDS+1];
+
+
 /* dependencies */
 #include <boot_deps.h>
 
@@ -19,15 +29,6 @@ struct cobj_header *hs[MAX_NUM_SPDS+1];
 //#include <failure_notif.h>
 #include <cgraph.h>
 //#include <checkpoint.h>
-
-/* local meta-data to track the components */
-struct spd_local_md {
-	spdid_t spdid;
-	vaddr_t comp_info;
-	char *page_start, *page_end;
-	struct cobj_header *h;
-	char *checkpt_region_start, checkpt_region_end;
-} local_md[MAX_NUM_SPDS+1];
 
 /* Component initialization info. */
 #define INIT_STR_SZ 52
@@ -266,31 +267,6 @@ boot_spd_map(struct cobj_header *h, spdid_t spdid, vaddr_t comp_info)
 	if (boot_spd_map_populate(h, spdid, comp_info, 1)) return -1;
 
 	return 0;
-}
-
-void
-checkpoint_checkpt(spdid_t caller) {
-	printc("checkpoint called, copying memory!\n");
-	struct spd_local_md *md;
-	LOCK();
-	md = &local_md[caller];
-	assert(md);
-	printc("about to memcpy 0x%x bytes from 0x%x to 0x%x\n", md->page_end - md->page_start, md->page_start, md->checkpt_region_start);
-	memcpy(md->checkpt_region_start, md->page_start, (md->page_end - md->page_start));
-
-	UNLOCK();
-}
-
-int
-checkpoint_restore(spdid_t caller) {
-	printc("restore checkpoint called... restoring...\n");
-	struct spd_local_md *md;
-	LOCK();
-	md = &local_md[caller];
-	assert(md);
-	memcpy(md->page_start, md->checkpt_region_start, md->page_end - md->page_start);
-	UNLOCK();
-	return 1;
 }
 
 static int 

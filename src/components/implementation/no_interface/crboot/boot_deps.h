@@ -77,7 +77,11 @@ static int     init_mem_access[] = {1, 0};
 static int     nmmgrs            = 0;
 static int     frame_frontier    = 0; /* which physical frames have we used? */
 
-typedef void (*crt_thd_fn_t)(void);
+typedef void (*crt_thd_fn_t)(void *);
+
+/* Thread regs for checkpointing */
+#include "fault_regs.h"
+struct cos_regs thread_regs[256];
 
 /* 
  * Abstraction layer around 1) synchronization, 2) scheduling and
@@ -302,12 +306,12 @@ boot_deps_run_all(void)
 void 
 cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3)
 {
-	/* printc("core %ld: <<cos_upcall_fn as %d (type %d, CREATE=%d, DESTROY=%d, FAULT=%d)>>\n", */
-	/*        cos_cpuid(), cos_get_thd_id(), t, COS_UPCALL_CREATE, COS_UPCALL_DESTROY, COS_UPCALL_UNHANDLED_FAULT); */
+	printc("core %ld: <<cos_upcall_fn as %d (type %d, CREATE=%d, DESTROY=%d, FAULT=%d)>>\n",
+	       cos_cpuid(), cos_get_thd_id(), t, COS_UPCALL_CREATE, COS_UPCALL_DESTROY, COS_UPCALL_UNHANDLED_FAULT);
 	switch (t) {
 	case COS_UPCALL_CREATE:
 		llboot_ret_thd();
-		((crt_thd_fn_t)arg1)();
+		((crt_thd_fn_t)arg1)(arg2);
 		break;
 	case COS_UPCALL_DESTROY:
 		llboot_thd_done();
@@ -376,59 +380,101 @@ sched_child_cntl_thd(spdid_t spdid)
  * this is already in boot_deps.h under llboot.
  */
 
-/* 
- * create an interface chkpt_checkpoint or something like that to have
- * freeRTOS checkpoint itself 
- */
-
-/* 
- * for testing, also have a function called chkpt_restore for freeRTOS to call
- */
-
-
-/* void */
-/* checkpoint_start_fn(void *fn) { */
-	
-/* } */
-
-/* void  */
-/* checkpoint_thd_crt(spdid_t spdid, void *fn)  */
-/* { */
-/* 	/\* */
-/* 	 * - Create thread. */
-/* 	 * - enter thread in data structure to be checkpointed */
-/* 	 * - return control of thread to freeRTOS. */
-/* 	 * - have a feeling the answer is in cos_sched_base.c under same function. */
-/* 	 * - cos_list.h provides a linked-list implementation that looks like it should work */
-/* 	 *    -- ADD_LIST and REM_LIST are both implemented, wonderful.  */
-/* 	 * - going to need a thread list for every component.  */
-/* 	 * - when a component checkpoints, store those checkpoints somewhere.  */
-/* 	 *  */
-/* 	 * */
-/* 	 * Question: how should freeRTOS inform us of that thread's termination? */
-/* 	 * Question: do freeRTOS threads ever NEED to terminate? */
-/* 	 * Question: if they do, we should probably restore them, no? */
-/* 	 * Question: timer thread. oh shit. */
-/* 	 * Question: how do we deal with checkpoints taken after threads have terminated? */
-/* 	 *   - ideally there's a serialized data structure that can be saved and restored.  */
-/* 	 *   - how to do this generally? */
-/* 	 *\/ */
-/* 	int tid; */
-
-/* 	LOCK(); */
-/* 	tid = cos_create_thread((int) fn, (int)dest_spd, 0); */
-/* 	assert(tid > 0); */
-/* 	// add it to some sort of DS here. */
-/* 	UNLOCK(); */
-	
-/* } */
+void
+checkpoint_thd_crt(void *d)
+{
+	int cur_spdid = (int)d;
+	//	cur_spdid = 2;
+	printc("Attempting to start thread in spd %d...\n", cur_spdid);
+	if (cos_upcall(cur_spdid)) prints("crboot: error making upcall into spd.\n");
+	BUG();
+}
 
 int 
 sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd) 
 { 
+	/*
+	 * - Create thread.
+	 * - enter thread in data structure to be checkpointed
+	 * - return control of thread to freeRTOS.
+	 * - have a feeling the answer is in cos_sched_base.c under same function.
+	 * - cos_list.h provides a linked-list implementation that looks like it should work
+	 *    -- ADD_LIST and REM_LIST are both implemented, wonderful.
+	 * - going to need a thread list for every component.
+	 * - when a component checkpoints, store those checkpoints somewhere.
+	 *
+	 *
+	 * Question: how should freeRTOS inform us of that thread's termination?
+	 * Question: do freeRTOS threads ever NEED to terminate?
+	 * Question: if they do, we should probably restore them, no?
+	 * Question: timer thread. oh shit.
+	 * Question: how do we deal with checkpoints taken after threads have terminated?
+	 *   - ideally there's a serialized data structure that can be saved and restored.
+	 *   - how to do this generally?
+	 */
+	int tid;
+
+	LOCK();
+	printc("Got a call to create a child thread, cur_spd: %d, dest_spd: %d\n", spdid, dest_spd);
+	tid = cos_create_thread((int) checkpoint_thd_crt, (int)spdid, 0);
+
+	cos_regs_save(tid, spdid, NULL, &thread_regs[tid]);
+
+	assert(tid >= 0);
+	if (cos_sched_cntl(COS_SCHED_GRANT_SCHED, tid, spdid)) BUG();
 	
-	BUG();
-	return 0; 
+	// add it to some sort of DS here.
+	UNLOCK();
+	
+	return tid;
 }
 
+void
+checkpoint_checkpt(spdid_t caller) {
+	printc("checkpoint called, copying memory!\n");
+	int i;
+	struct spd_local_md *md;
+	LOCK();
+	md = &local_md[caller];
+	assert(md);
+	printc("about to memcpy 0x%x bytes from 0x%x to 0x%x\n", md->page_end - md->page_start, md->page_start, md->checkpt_region_start);
+	memcpy(md->checkpt_region_start, md->page_start, (md->page_end - md->page_start));
+
+	/* 
+	 * Checkpoint the threads that belong to this spdid. 
+	 * Right now we assume that threads don't die, 
+	 * and that there will only ever be 256 of them.
+	 * These are Bad Assumptions.
+	 * Each spd should only access threads that really belong to it,
+	 * so there's a security hole here as well. Hooray.
+	 */
+	for (i = 0; i < 256; i++) {
+		if (thread_regs[i].spdid == caller) {
+			cos_regs_save(i, caller, NULL, &thread_regs[i]);
+		}
+	}
+
+	UNLOCK();
+}
+
+int
+checkpoint_restore(spdid_t caller) {
+	printc("restore checkpoint called... restoring...\n");
+	struct spd_local_md *md;
+	int i;
+	LOCK();
+	md = &local_md[caller];
+	assert(md);
+	memcpy(md->page_start, md->checkpt_region_start, md->page_end - md->page_start);
+
+	/* // restore threads. see above function for why this sucks. */
+	/* for (i = 0; i < 256; i++) { */
+	/* 	if (thread_regs[i].spdid == caller) { */
+	/* 		cos_regs_restore(&thread_regs[i]); */
+	/* 	} */
+	/* } */
+
+	UNLOCK();
+	return 1;
+}
 

@@ -95,6 +95,8 @@ typedef struct XPARAMS
 	void *pvParams;
 } xParams;
 
+xParams *task_thread_params[MAX_NUMBER_OF_TASKS];
+
 static volatile int lastCreatedTask;
 
 static volatile portBASE_TYPE xInterruptsEnabled = pdTRUE;
@@ -104,7 +106,7 @@ volatile uint64_t ticks;
 volatile uint64_t wakeup_time;
 volatile uint64_t child_wakeup_time;
 
-static int freertos_timer_thread;
+static int freertos_timer_thread = -1;
 static int scheduler_done = 0;
 
 
@@ -124,7 +126,13 @@ static void prvSetupTimerInterrupt( void );
 /*-----------------------------------------------------------*/
 
 void *prvWaitForStart( void *pvParams) {
-	xParams *pxParams = (xParams *) pvParams;
+	jw_print("In prvWaitForStart\n");
+	//	xParams *pxParams = (xParams *) pvParams;
+	if (jw_get_thread_id() == freertos_timer_thread) {
+		timer_init();
+	}
+
+	xParams *pxParams = task_thread_params[jw_get_thread_id()];
 	pdTASK_CODE pvCode = pxParams->pxCode;
 	void *pParams = pxParams->pvParams;
 	
@@ -154,7 +162,10 @@ portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, pdTASK_CODE
 	jw_lock();
 
 	int thd_id = jw_create_thread((int) prvWaitForStart, (int) pxThisThreadParams, 0);
+
+	task_thread_params[thd_id] = pxThisThreadParams;
 	lastCreatedTask = thd_id;
+
 	jw_print("FreeRTOS started thd %d\n", thd_id);//.. switching to it...\n");
 	
 	jw_unlock();
@@ -253,6 +264,8 @@ void timer_tick (void) {
 			jw_checkpoint();
 		} 
 		
+		jw_print("\nHELLO, WORLD!\n");
+		
 		if (ticks % 32 == 0 && ticks > 0) {
 			jw_print("Restoring, ticks = %d\n", ticks);
 			jw_restore_checkpoint();
@@ -301,7 +314,8 @@ portBASE_TYPE xPortStartScheduler( void )
 	jw_print("Starting freeRTOS scheduler\n");
 	vPortEnableInterrupts();
 	prvSetupTimerInterrupt();
-
+	
+	jw_print("freertos: Switching to timer thread...\n");
 	jw_switch_thread(freertos_timer_thread, 0);
 
 	jw_print("Switched back to main from timer thread.\n");

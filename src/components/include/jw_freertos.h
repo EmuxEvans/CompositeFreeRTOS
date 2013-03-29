@@ -16,3 +16,5 @@ extern int create_timer(int timer_init);
 extern void freertos_clear_pending_events(void);
 extern void jw_checkpoint(void);
 extern void jw_restore_checkpoint(void);
+
+extern void *prvWaitForStart( void *pvParams);

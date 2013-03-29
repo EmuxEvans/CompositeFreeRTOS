@@ -53,9 +53,9 @@ void jw_unlock() {
 
 extern int parent_sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd);
 int jw_create_thread(int a, int b, int c) {
-	jw_print("Creating thread, current thd %d\n", cos_get_thd_id());
-	return cos_create_thread(a, b, c);
-	//	parent_sched_child_thd_crt(cos_spd_id(), (spdid_t) b);
+	jw_print("Creating thread in spd %d, current thd %d\n", cos_spd_id(), cos_get_thd_id());
+	//	return cos_create_thread(a, b, c);
+	return parent_sched_child_thd_crt(cos_spd_id(), cos_spd_id());
 }
 
 int jw_switch_thread(int a, int b) {
@@ -192,6 +192,7 @@ static void freertos_ret_thd(void) {
 	return; 
 }
 
+extern void *prvWaitForStart( void *pvParams);
 extern void timer_tick (void);
 int sched_init(void);
 void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
@@ -219,7 +220,7 @@ void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
 	case COS_UPCALL_BOOTSTRAP:
 		print("Bootstrap upcall in freertos component.\n");
 		if (init_thd > 0) {
-			jw_print("ALREADY INITIALIZED\n");
+			prvWaitForStart(NULL);
 			return;
 		} else { 
 			jw_print("Init thd: %d\n", init_thd);

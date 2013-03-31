@@ -542,9 +542,44 @@ cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
 
 		return thd_set_frame_sp(thd, frame_offset, arg2);
 	}
-#define __GET_REG(name)							\
+#define __GET_FREG(name)							\
 	{								\
 		if (arg1) return thd->fault_regs. name ;		\
+		if (!(thd->flags & THD_STATE_PREEMPTED)) return 0;	\
+		printk("Calling get freg. WRONG\n");                    \
+		return thd->regs. name ;				\
+	}
+	case COS_THD_GET_FIP: __GET_FREG(ip);
+	case COS_THD_GET_FSP: __GET_FREG(sp);
+	case COS_THD_GET_FFP: __GET_FREG(bp);
+	case COS_THD_GET_F1:  __GET_FREG(ax);
+	case COS_THD_GET_F2:  __GET_FREG(bx);
+	case COS_THD_GET_F3:  __GET_FREG(cx);
+	case COS_THD_GET_F4:  __GET_FREG(dx);
+	case COS_THD_GET_F5:  __GET_FREG(di);
+	case COS_THD_GET_F6:  __GET_FREG(si);
+#define __SET_FREG(name)							\
+	{							        \
+		printk("Calling set freg. WRONG\n");                    \
+		if (arg2) thd->fault_regs. name = arg1;			\
+		else if ((thd->flags & THD_STATE_PREEMPTED)) thd->regs. name = arg1; \
+		else return -1;						\
+		return 0;						\
+	}
+	case COS_THD_SET_FIP: __SET_FREG(ip);
+	case COS_THD_SET_FSP: __SET_FREG(sp);
+	case COS_THD_SET_FFP: __SET_FREG(bp);
+	case COS_THD_SET_F1:  __SET_FREG(ax);
+	case COS_THD_SET_F2:  __SET_FREG(bx);
+	case COS_THD_SET_F3:  __SET_FREG(cx);
+	case COS_THD_SET_F4:  __SET_FREG(dx);
+	case COS_THD_SET_F5:  __SET_FREG(di);
+	case COS_THD_SET_F6:  __SET_FREG(si);
+
+#define __GET_REG(name)							\
+	{								\
+		printk("Calling get reg. RIGHT\n");			\
+		if (arg1) return thd->regs. name ;		\
 		if (!(thd->flags & THD_STATE_PREEMPTED)) return 0;	\
 		return thd->regs. name ;				\
 	}
@@ -559,7 +594,7 @@ cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
 	case COS_THD_GET_6:  __GET_REG(si);
 #define __SET_REG(name)							\
 	{							        \
-		if (arg2) thd->fault_regs. name = arg1;			\
+		if (arg2) thd->regs. name = arg1;			\
 		else if ((thd->flags & THD_STATE_PREEMPTED)) thd->regs. name = arg1; \
 		else return -1;						\
 		return 0;						\
@@ -573,6 +608,8 @@ cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
 	case COS_THD_SET_4:  __SET_REG(dx);
 	case COS_THD_SET_5:  __SET_REG(di);
 	case COS_THD_SET_6:  __SET_REG(si);
+
+
 	case COS_THD_STATUS:
 	{
 		/* FIXME: all flags should NOT be part of the ABI.

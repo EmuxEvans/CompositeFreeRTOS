@@ -342,6 +342,40 @@ enum {
 	 * register of the thread.  If the thread is not preempted and
 	 * arg1==0, return 0
 	 */
+	COS_THD_GET_FIP,
+	COS_THD_GET_FSP,
+	COS_THD_GET_FFP,
+	COS_THD_GET_F1,
+	COS_THD_GET_F2,
+	COS_THD_GET_F3,
+	COS_THD_GET_F4,
+	COS_THD_GET_F5,
+	COS_THD_GET_F6,
+
+	/* 
+	 * For the following SET methods, arg1 is the value to set the
+	 * register to, and arg2 is 0 if we wish to set the register
+	 * for a preempted thread, while it is 1 if we wish to set the
+	 * fault registers for the thread.  Return -1, and do nothing
+	 * if arg2 == 0, and the thread is not preempted.
+	 */
+	COS_THD_SET_FIP,
+	COS_THD_SET_FSP,
+	COS_THD_SET_FFP,
+	COS_THD_SET_F1,
+	COS_THD_SET_F2,
+	COS_THD_SET_F3,
+	COS_THD_SET_F4,
+	COS_THD_SET_F5,
+	COS_THD_SET_F6,
+
+
+	/* 
+	 * These calls can get and set the registers of a thread
+	 * without its having been preempted. There is no way to set
+	 * the fault registers here. Use the {GET|SET}_F{IP|SP|FP...}
+	 * for that.
+	*/
 	COS_THD_GET_IP,
 	COS_THD_GET_SP,
 	COS_THD_GET_FP,
@@ -351,14 +385,6 @@ enum {
 	COS_THD_GET_4,
 	COS_THD_GET_5,
 	COS_THD_GET_6,
-
-	/* 
-	 * For the following SET methods, arg1 is the value to set the
-	 * register to, and arg2 is 0 if we wish to set the register
-	 * for a preempted thread, while it is 1 if we wish to set the
-	 * fault registers for the thread.  Return -1, and do nothing
-	 * if arg2 == 0, and the thread is not preempted.
-	 */
 	COS_THD_SET_IP,
 	COS_THD_SET_SP,
 	COS_THD_SET_FP,

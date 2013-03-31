@@ -158,7 +158,9 @@ static void vCheckpointTask( void *pvParameters )
 	for(;;)
 	{
 		x++;
-		jw_print("x: %d\n", x);
+		if (x % 1000000 == 0) {
+			jw_print("x: %d\n", x);
+		}
 	}
 }
 

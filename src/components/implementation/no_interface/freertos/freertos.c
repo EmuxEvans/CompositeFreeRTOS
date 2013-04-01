@@ -83,8 +83,8 @@ long jw_spd_id(void) {
 	return cos_spd_id();
 }
 
-void jw_checkpoint(void) {
-	checkpoint_checkpt(cos_spd_id());
+int jw_checkpoint(void) {
+	return checkpoint_checkpt(cos_spd_id());
 }
 
 void jw_restore_checkpoint(void) {

@@ -429,16 +429,18 @@ sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd)
 	return tid;
 }
 
-void
+int
 checkpoint_checkpt(spdid_t caller) {
-	printc("checkpoint called, copying memory!\n");
-	int i;
+	int i, cur_thd;
 	struct spd_local_md *md;
+	printc("checkpoint called, copying memory!\n");
 	LOCK();
 	md = &local_md[caller];
 	assert(md);
 	printc("about to memcpy 0x%x bytes from 0x%x to 0x%x\n", md->page_end - md->page_start, md->page_start, md->checkpt_region_start);
 	memcpy(md->checkpt_region_start, md->page_start, (md->page_end - md->page_start));
+
+	cur_thd = cos_get_thd_id();
 
 	/* 
 	 * Checkpoint the threads that belong to this spdid. 
@@ -450,11 +452,20 @@ checkpoint_checkpt(spdid_t caller) {
 	 */
 	for (i = 0; i < 256; i++) {
 		if (thread_regs[i].spdid == caller) {
+			printc("Saving thread %d\n", i);
+			if (i == cur_thd) {
+				thread_regs[i].regs.ip = cos_thd_cntl(COS_THD_INVFRM_IP, i, 1, 0);
+				thread_regs[i].regs.sp = cos_thd_cntl(COS_THD_INVFRM_SP, i, 1, 0);
+				thread_regs[i].regs.ax = (long) 1;
+				thread_regs[i].regs.cx = (long) 1;
+				thread_regs[i].regs.dx = (long) 1;
+			}
 			cos_regs_save(i, caller, NULL, &thread_regs[i]);
 		}
 	}
 
 	UNLOCK();
+	return 0;
 }
 
 int
@@ -467,12 +478,13 @@ checkpoint_restore(spdid_t caller) {
 	assert(md);
 	memcpy(md->page_start, md->checkpt_region_start, md->page_end - md->page_start);
 
-	/* // restore threads. see above function for why this sucks. */
-	/* for (i = 0; i < 256; i++) { */
-	/* 	if (thread_regs[i].spdid == caller) { */
-	/* 		cos_regs_restore(&thread_regs[i]); */
-	/* 	} */
-	/* } */
+	// restore threads. see above function for why this sucks.
+	for (i = 0; i < 256; i++) {
+		if (thread_regs[i].spdid == caller) {
+			printc("Restoring thread %d\n", i);
+			cos_regs_restore(&thread_regs[i]);
+		}
+	}
 
 	UNLOCK();
 	return 1;

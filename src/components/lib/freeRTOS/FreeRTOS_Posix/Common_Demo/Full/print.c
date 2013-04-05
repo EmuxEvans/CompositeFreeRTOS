@@ -83,7 +83,7 @@ Changes from V2.0.0
 */
 
 #include <stdlib.h>
-#include <jw_freertos.sh>
+#include <jw_freertos.h>
 /* Scheduler include files. */
 #include "FreeRTOS.h"
 #include "queue.h"

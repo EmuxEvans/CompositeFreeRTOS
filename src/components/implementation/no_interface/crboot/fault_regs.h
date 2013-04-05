@@ -40,6 +40,20 @@ static void cos_regs_restore(struct cos_regs *r)
 	cos_thd_cntl(COS_THD_SET_6,  r->tid, r->regs.si, 1);
 }
 
+static void cos_regs_fault_restore(struct cos_regs *r)
+{
+	cos_thd_cntl(COS_THD_SET_FIP, r->tid, r->regs.ip, 1);
+	cos_thd_cntl(COS_THD_SET_FSP, r->tid, r->regs.sp, 1);
+	cos_thd_cntl(COS_THD_SET_FFP, r->tid, r->regs.bp, 1);
+	cos_thd_cntl(COS_THD_SET_F1,  r->tid, r->regs.ax, 1);
+	cos_thd_cntl(COS_THD_SET_F2,  r->tid, r->regs.bx, 1);
+	cos_thd_cntl(COS_THD_SET_F3,  r->tid, r->regs.cx, 1);	
+	cos_thd_cntl(COS_THD_SET_F4,  r->tid, r->regs.dx, 1);
+	cos_thd_cntl(COS_THD_SET_F5,  r->tid, r->regs.di, 1);
+	cos_thd_cntl(COS_THD_SET_F6,  r->tid, r->regs.si, 1);
+}
+
+
 static void cos_regs_print(struct cos_regs *r)
 {
 	printc("EIP:%10x\tESP:%10x\tEBP:%10x\n"

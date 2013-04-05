@@ -175,36 +175,65 @@ llboot_thd_done(void)
 void 
 failure_notif_fail(spdid_t caller, spdid_t failed);
 
+#include <checkpoint.h>
+
+int have_checkpoint[NCOMPS];
+int checkpoint_restore_fault_regs(spdid_t caller);
+
 int 
 fault_page_fault_handler(spdid_t spdid, void *fault_addr, int flags, void *ip)
 {
+	printc("PAGE FAULT CAUGHT at: %x\n", (unsigned int) ip);
 	unsigned long r_ip; 	/* the ip to return to */
 	int tid = cos_get_thd_id();
 
-	failure_notif_fail(cos_spd_id(), spdid);
-	/* no reason to save register contents... */
-	if(!cos_thd_cntl(COS_THD_INV_FRAME_REM, tid, 1, 0)) {
-		/* Manipulate the return address of the component that called
-		 * the faulting component... */
-		assert(r_ip = cos_thd_cntl(COS_THD_INVFRM_IP, tid, 1, 0));
-		/* ...and set it to its value -8, which is the fault handler
-		 * of the stub. */
-		assert(!cos_thd_cntl(COS_THD_INVFRM_SET_IP, tid, 1, r_ip-8));
+	//If we have a checkpoint for this component, use that.
 
-		/* switch to the recovery thread... */
-		PERCPU_GET(llbooter)->recover_spd = spdid;
-		PERCPU_GET(llbooter)->prev_thd = cos_get_thd_id();
-		cos_switch_thread(PERCPU_GET(llbooter)->recovery_thd, 0);
-		/* after the recovery thread is done, it should switch back to us. */
+	//check that the invfrm_ip is 0.
+	if (have_checkpoint[spdid] == 1) {
+
+		/* 
+		 * THIS was the thing that fixed the infinite page
+		 * fault bug.  Obviously, the subsequent code is a
+		 * hack, but we just need to set the IP in the faulted
+		 * component to zero, thanks to a bug in pop() 
+		 * in a call to ipc_walk_static_cap.
+		 */
+		/* r_ip = cos_thd_cntl(COS_THD_INVFRM_IP, tid, 1, 0); */
+		/* printc("Invocation frame ip: %x\n", (unsigned int) r_ip); */
+		/* if (r_ip != 0) { */
+		/* 	assert(!cos_thd_cntl(COS_THD_INVFRM_SET_IP, tid, 1, 0)); */
+		/* } */
+		
+		int ret = checkpoint_restore_fault_regs(spdid);
 		return 0;
 	}
-	/* 
-	 * The thread was created in the failed component...just use
-	 * it to restart the component!  This might even be the
-	 * initial thread.
-	 */
-	cos_upcall(spdid); 	/* FIXME: give back stack... */
-	BUG();
+
+	/* failure_notif_fail(cos_spd_id(), spdid); */
+	
+	/* no reason to save register contents... */
+	/* if(!cos_thd_cntl(COS_THD_INV_FRAME_REM, tid, 1, 0)) { */
+	/* 	/\* Manipulate the return address of the component that called */
+	/* 	 * the faulting component... *\/ */
+	/* 	assert(r_ip = cos_thd_cntl(COS_THD_INVFRM_IP, tid, 1, 0)); */
+	/* 	/\* ...and set it to its value -8, which is the fault handler */
+	/* 	 * of the stub. *\/ */
+	/* 	assert(!cos_thd_cntl(COS_THD_INVFRM_SET_IP, tid, 1, r_ip-8)); */
+
+	/* 	/\* switch to the recovery thread... *\/ */
+	/* 	PERCPU_GET(llbooter)->recover_spd = spdid; */
+	/* 	PERCPU_GET(llbooter)->prev_thd = cos_get_thd_id(); */
+	/* 	cos_switch_thread(PERCPU_GET(llbooter)->recovery_thd, 0); */
+	/* 	/\* after the recovery thread is done, it should switch back to us. *\/ */
+	/* 	return 0; */
+	/* } */
+	/* /\* */
+	/*  * The thread was created in the failed component...just use */
+	/*  * it to restart the component!  This might even be the */
+	/*  * initial thread. */
+	/*  *\/ */
+	/* cos_upcall(spdid); 	/\* FIXME: give back stack... *\/ */
+	/* BUG(); */
 
 	return 0;
 }
@@ -380,6 +409,7 @@ sched_child_cntl_thd(spdid_t spdid)
  * this is already in boot_deps.h under llboot.
  */
 
+
 void
 checkpoint_thd_crt(void *d)
 {
@@ -418,7 +448,18 @@ sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd)
 	printc("Got a call to create a child thread, cur_spd: %d, dest_spd: %d\n", spdid, dest_spd);
 	tid = cos_create_thread((int) checkpoint_thd_crt, (int)spdid, 0);
 
-	cos_regs_save(tid, spdid, NULL, &thread_regs[tid]);
+	//cos_regs_save(tid, spdid, NULL, &thread_regs[tid]);
+	thread_regs[tid].regs.ip = 0;
+	thread_regs[tid].regs.sp = 0;
+	thread_regs[tid].regs.bp = 0;
+	thread_regs[tid].regs.ax = 0;
+	thread_regs[tid].regs.bx = 0;
+	thread_regs[tid].regs.cx = 0;
+	thread_regs[tid].regs.dx = 0;
+	thread_regs[tid].regs.di = 0;
+	thread_regs[tid].regs.si = 0;
+	thread_regs[tid].spdid = spdid;
+	thread_regs[tid].tid = tid;
 
 	assert(tid >= 0);
 	if (cos_sched_cntl(COS_SCHED_GRANT_SCHED, tid, spdid)) BUG();
@@ -430,7 +471,8 @@ sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd)
 }
 
 int
-checkpoint_checkpt(spdid_t caller) {
+checkpoint_checkpt(spdid_t caller) 
+{
 	int i, cur_thd;
 	struct spd_local_md *md;
 	printc("checkpoint called, copying memory!\n");
@@ -441,6 +483,7 @@ checkpoint_checkpt(spdid_t caller) {
 	memcpy(md->checkpt_region_start, md->page_start, (md->page_end - md->page_start));
 
 	cur_thd = cos_get_thd_id();
+	printc("Current thread: %d\n", cur_thd);
 
 	/* 
 	 * Checkpoint the threads that belong to this spdid. 
@@ -454,39 +497,90 @@ checkpoint_checkpt(spdid_t caller) {
 		if (thread_regs[i].spdid == caller) {
 			printc("Saving thread %d\n", i);
 			if (i == cur_thd) {
+				printc("Thread %d is the current thread\n", i);
 				thread_regs[i].regs.ip = cos_thd_cntl(COS_THD_INVFRM_IP, i, 1, 0);
 				thread_regs[i].regs.sp = cos_thd_cntl(COS_THD_INVFRM_SP, i, 1, 0);
 				thread_regs[i].regs.ax = (long) 1;
 				thread_regs[i].regs.cx = (long) 1;
 				thread_regs[i].regs.dx = (long) 1;
+			} else { 
+				cos_regs_save(i, caller, NULL, &thread_regs[i]);
 			}
-			cos_regs_save(i, caller, NULL, &thread_regs[i]);
+			cos_regs_print(&thread_regs[i]);
 		}
 	}
 
+	/* /\* doing this because I seem to miss the init thd in the */
+	/*  * checkpoint, because it's created by the llbooter. seeing if this gets */
+	/*  * around my current problem  */
+	/*  *\/ */
+	/* i = cur_thd; */
+	/* printc("Saving thread %d\n", i); */
+	/* printc("Thread %d is the current thread\n", i); */
+	/* thread_regs[i].regs.ip = cos_thd_cntl(COS_THD_INVFRM_IP, i, 1, 0); */
+	/* thread_regs[i].regs.sp = cos_thd_cntl(COS_THD_INVFRM_SP, i, 1, 0); */
+	/* thread_regs[i].regs.ax = (long) 1; */
+	/* thread_regs[i].regs.cx = (long) 1; */
+	/* thread_regs[i].regs.dx = (long) 1; */
+	
+	
+	have_checkpoint[caller] = 1;
 	UNLOCK();
 	return 0;
 }
 
-int
-checkpoint_restore(spdid_t caller) {
-	printc("restore checkpoint called... restoring...\n");
+int 
+checkpoint_restore_helper(spdid_t caller, int use_fault_regs) 
+{
+	printc("restore checkpoint called... restoring... from thread %d\n", cos_get_thd_id());
 	struct spd_local_md *md;
-	int i;
+	int i, thd_id;
+
 	LOCK();
 	md = &local_md[caller];
 	assert(md);
 	memcpy(md->page_start, md->checkpt_region_start, md->page_end - md->page_start);
 
-	// restore threads. see above function for why this sucks.
 	for (i = 0; i < 256; i++) {
 		if (thread_regs[i].spdid == caller) {
 			printc("Restoring thread %d\n", i);
 			cos_regs_restore(&thread_regs[i]);
+			cos_regs_print(&thread_regs[i]);
 		}
 	}
 
+	// properly restore the faulting thread'
+	if (use_fault_regs) {
+		thd_id = cos_get_thd_id();
+		printc("Resetting fault regs of thread %d\n", thd_id);
+		cos_regs_fault_restore(&thread_regs[thd_id]);
+		cos_regs_print(&thread_regs[thd_id]);
+		printc("\n");
+	}
+	
+	printc("Done restoring...\n");
 	UNLOCK();
+	return 1;
+	
+}
+
+static int faulted = 0;
+int
+checkpoint_test_should_fault_again() {
+	if (faulted) return 0;
+	faulted = 1;
 	return 1;
 }
 
+int
+checkpoint_restore(spdid_t caller) 
+{
+	return checkpoint_restore_helper(caller, 0);
+}
+
+int
+checkpoint_restore_fault_regs(spdid_t caller) 
+{
+	printc("Restoring to FAULT regs\n");
+	return checkpoint_restore_helper(caller, 1);
+}

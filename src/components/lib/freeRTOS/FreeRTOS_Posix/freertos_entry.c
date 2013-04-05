@@ -98,6 +98,7 @@
 #include "task.h"
 #include "queue.h"
 #include "croutine.h"
+#include <jw_freertos.h>
 /* #include "partest.h" */
 
 /* Demo file headers. */
@@ -148,18 +149,28 @@ void vMainQueueSendPassed( void )
 	return;
 }
 
+int have_restored = 0;
+extern int checkpoint_test_should_fault_again();
 static void vCheckpointTask( void *pvParameters )
 {
 	const char * const pcTaskStartMsg = "Checkpoint task 1 started.\r\n";
-	volatile int x = 0;
+	volatile u64_t x = 0;
+	u64_t tsc;
 
-	jw_print(pcTaskStartMsg);
+	//	jw_print(pcTaskStartMsg);
 
 	for(;;)
 	{
 		x++;
 		if (x % 1000000 == 0) {
-			jw_print("x: %d\n", x);
+			jw_print("x: %llu (u64_t)\n", x);
+		}
+		rdtscll(tsc);
+
+		if (tsc % 12345555 == 0 && (!have_restored)) {
+			jw_print("About to page fault? TSC was accepted value\n");
+			x = (int)(*((char *)0));
+			/* jw_print("what?\n"); */
 		}
 	}
 }
@@ -171,6 +182,7 @@ void vStartCheckpointTask() {
 
 int freeRTOS_entry( void )
 {
+	jw_checkpoint();
 	/* CREATE ALL THE DEMO APPLICATION TASKS. */
 	/* vStartMathTasks( tskIDLE_PRIORITY ); */
 	vStartCheckpointTask();

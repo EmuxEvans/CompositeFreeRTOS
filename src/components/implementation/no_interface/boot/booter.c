@@ -180,7 +180,6 @@ boot_spd_map_memory(struct cobj_header *h, spdid_t spdid, vaddr_t comp_info)
 		} 
 		while (left > 0) {
 			dsrc = cos_get_vas_page();
-			printc("dsrc: 0x%x\n", dsrc);
 			/* TODO: if use_kmem, we should allocate
 			 * kernel-accessible memory, rather than
 			 * normal user-memory */

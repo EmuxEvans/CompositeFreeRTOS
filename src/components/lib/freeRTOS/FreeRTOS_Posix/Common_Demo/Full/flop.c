@@ -77,7 +77,7 @@ Changes from V1.2.3
 
 #include <stdlib.h>
 #include <math.h>
-#include <jw_freertos.sh>
+#include <jw_freertos.h>
 
 /* Scheduler include files. */
 #include "FreeRTOS.h"

@@ -268,7 +268,7 @@ fault_ipc_invoke(struct thread *thd, vaddr_t fault_addr, int flags, struct pt_re
 	
 	/* save the faulting registers */
 	memcpy(&thd->fault_regs, regs, sizeof(struct pt_regs));
-	a = ipc_walk_static_cap(fault_cap<<20, regs->sp, regs->ip, &r);
+	a = ipc_walk_static_cap(fault_cap<<20, 0, 0, &r);
 
 	/* setup the registers for the fault handler invocation */
 	regs->ax = r.thd_id;
@@ -474,12 +474,19 @@ cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
 	 */
 	curr = core_get_curr_thd();
 	curr_spd = thd_validate_get_current_spd(curr, spd_id);
+
 	if (NULL == curr_spd) {
 		printk("cos: component claimed in spd %d, but not\n", spd_id);
 		return -1;
 	}
 	
 	thd = thd_get_by_id(thdid);
+
+	if (!thd) {
+		printk("cos: thread not valid: %d\n", thdid);
+		return -1;
+	}
+
 	/* FIXME: finer grained access control required */
 /*	if (!spd_is_scheduler(curr_spd) || !thd_scheduled_by(thd, curr_spd)) {
 		printk("cos: non-scheduler attempted to manipulate thread.\n");
@@ -558,12 +565,15 @@ cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
 	case COS_THD_GET_F4:  __GET_FREG(dx);
 	case COS_THD_GET_F5:  __GET_FREG(di);
 	case COS_THD_GET_F6:  __GET_FREG(si);
+
+		/* if (arg2) thd->fault_regs. name = arg1;			\ */
+		/* else if ((thd->flags & THD_STATE_PREEMPTED)) thd->regs. name = arg1; \ */
+		/* else return -1;						\ */
+
 #define __SET_FREG(name)							\
 	{							        \
-		printk("Calling set freg. WRONG\n");                    \
-		if (arg2) thd->fault_regs. name = arg1;			\
-		else if ((thd->flags & THD_STATE_PREEMPTED)) thd->regs. name = arg1; \
-		else return -1;						\
+		thd->fault_regs. name = arg1;			\
+		printk("Calling set freg. %x\n", (unsigned int) arg1);	\
 		return 0;						\
 	}
 	case COS_THD_SET_FIP: __SET_FREG(ip);
@@ -576,11 +586,16 @@ cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
 	case COS_THD_SET_F5:  __SET_FREG(di);
 	case COS_THD_SET_F6:  __SET_FREG(si);
 
+
+		/* // trust me. */
+		/* //		if (!(thd->flags & THD_STATE_PREEMPTED)) return 0; \ */
+		/* // 		if (arg1) return thd->regs. name ;		\ */
+
 #define __GET_REG(name)							\
 	{								\
-		printk("Calling get reg. RIGHT\n");			\
-		if (arg1) return thd->regs. name ;		\
-		if (!(thd->flags & THD_STATE_PREEMPTED)) return 0;	\
+		printk("Thread %d | ", thdid);                      \
+		printk("Calling get reg %x\n", thd->regs .name);	\
+		if (arg1) return thd->regs. name ;			\
 		return thd->regs. name ;				\
 	}
 	case COS_THD_GET_IP: __GET_REG(ip);
@@ -592,11 +607,15 @@ cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
 	case COS_THD_GET_4:  __GET_REG(dx);
 	case COS_THD_GET_5:  __GET_REG(di);
 	case COS_THD_GET_6:  __GET_REG(si);
+
+
+		/* if (arg2) thd->regs. name = arg1;			\ */
+		/* else if ((thd->flags & THD_STATE_PREEMPTED)) thd->regs. name = arg1; \ */
+		/* else  { printk("Not restoring register\n"); return -1;}	\ */
+
 #define __SET_REG(name)							\
 	{							        \
-		if (arg2) thd->regs. name = arg1;			\
-		else if ((thd->flags & THD_STATE_PREEMPTED)) thd->regs. name = arg1; \
-		else return -1;						\
+		thd->regs. name = arg1;					\
 		return 0;						\
 	}
 	case COS_THD_SET_IP: __SET_REG(ip);

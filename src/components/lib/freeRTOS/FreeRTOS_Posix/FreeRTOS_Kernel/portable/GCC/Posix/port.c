@@ -253,27 +253,31 @@ void vPortYieldFromTick( void )
 	return;
 }
 /*-----------------------------------------------------------*/
-
+extern int have_restored;
 void timer_tick (void) {
 	while(1) {
 		//		jw_lock();
 		//		jw_print("Got timer tick. Total ticks: %d\n", ticks);
 		//check if we're done running here. for now, forget it.
 		ticks++;
-		if (ticks % CHECKPOINT_INTERVAL == 0 && ticks % 32 != 0) {
-			int ret = jw_checkpoint();
-			if (ret == 1) {
-				jw_print("WHOA MAN\n");
-			}
-			jw_print("Returned from checkpoint in thread %d\n", jw_get_thread_id());
-		} 
+		if (ticks == 2) {
+			have_restored = jw_checkpoint();
+		}
 		
-		jw_print("\nHELLO, WORLD!\n");
+		/* if (ticks % CHECKPOINT_INTERVAL == 0 && ticks % 32 != 0) { */
+		/* 	int ret = jw_checkpoint(); */
+		/* 	if (ret == 1) { */
+		/* 		jw_print("WHOA MAN\n"); */
+		/* 	} */
+		/* 	jw_print("Returned from checkpoint in thread %d\n", jw_get_thread_id()); */
+		/* }  */
+		
+		jw_print("\nHave restored: %d\n", have_restored);
 		
 		if (ticks % 32 == 0 && ticks > 0) {
-			jw_print("Restoring, ticks = %d\n", ticks);
-			jw_restore_checkpoint();
-			jw_print("done restoring\n");
+			/* jw_print("Restoring, ticks = %d\n", ticks); */
+			/* jw_restore_checkpoint(); */
+			/* jw_print("done restoring\n"); */
 		}
 		vPortYieldFromTick();
 	}
@@ -319,6 +323,7 @@ portBASE_TYPE xPortStartScheduler( void )
 	vPortEnableInterrupts();
 	prvSetupTimerInterrupt();
 	
+	//	jw_checkpoint();
 	jw_print("freertos: Switching to timer thread...\n");
 	jw_switch_thread(freertos_timer_thread, 0);
 

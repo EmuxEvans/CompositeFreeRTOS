@@ -572,15 +572,33 @@ checkpoint_test_should_fault_again() {
 	return 1;
 }
 
+static u64_t total_restore_time = 0;
+static u64_t restore_samples = 0;
+
 int
 checkpoint_restore(spdid_t caller) 
 {
-	return checkpoint_restore_helper(caller, 0);
+	u64_t start, end;
+	int ret;
+	start = end = 0;
+
+	rdtscll(start);
+	ret = checkpoint_restore_helper(caller, 0);
+	rdtscll(end);
+	
+	if (end > start) {
+		restore_samples++;
+		total_restore_time += (end - start);
+		printc("Restore time (cycles): %llu\n", (end - start));
+		printc("Average Restore time (cycles): %llu\n", (total_restore_time / restore_samples));
+	}
+
+	return ret;
 }
 
 int
 checkpoint_restore_fault_regs(spdid_t caller) 
 {
-	printc("Restoring to FAULT regs\n");
+	//	printc("Restoring to FAULT regs\n");
 	return checkpoint_restore_helper(caller, 1);
 }

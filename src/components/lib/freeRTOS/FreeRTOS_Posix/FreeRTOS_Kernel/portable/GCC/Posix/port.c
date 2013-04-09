@@ -255,40 +255,40 @@ void vPortYieldFromTick( void )
 /*-----------------------------------------------------------*/
 extern int have_restored;
 void timer_tick (void) {
-	u64_t start, end, total, samples;
-	start = end = total = samples;
+	/* u64_t start, end, total, samples; */
+	/* start = end = total = samples; */
 	while(1) {
 		//		jw_lock();
 		//		jw_print("Got timer tick. Total ticks: %d\n", ticks);
 		//check if we're done running here. for now, forget it.
 		ticks++;
-		/* if (ticks == 2) { */
-		/* 	have_restored = jw_checkpoint(); */
-		/* } */
-		
-		if (ticks % CHECKPOINT_INTERVAL == 0 && ticks % 32 != 0) {
-			rdtscll(start);
-			int ret = jw_checkpoint();
-			if (ret == 1) {
-				jw_print("Have returned from a restore.\n");
-			} else {
-				rdtscll(end);
-				if (end > start) {
-					jw_print("Checkpoint time (cycles): %llu\n", end - start);
-					total += (end - start);
-					samples++;
-					jw_print("Average checkpoint time: %llu\n", (total / samples));
-				}
-			}
-			//			jw_print("Returned from checkpoint in thread %d\n", jw_get_thread_id());
+		if (ticks == 2) {
+			have_restored = jw_checkpoint();
 		}
+		
+		/* if (ticks % CHECKPOINT_INTERVAL == 0 && ticks % 32 != 0) { */
+		/* 	rdtscll(start); */
+		/* 	int ret = jw_checkpoint(); */
+		/* 	if (ret == 1) { */
+		/* 		jw_print("Have returned from a restore.\n"); */
+		/* 	} else { */
+		/* 		/\* rdtscll(end); *\/ */
+		/* 		/\* if (end > start) { *\/ */
+		/* 		/\* 	jw_print("Checkpoint time (cycles): %llu\n", end - start); *\/ */
+		/* 		/\* 	total += (end - start); *\/ */
+		/* 		/\* 	samples++; *\/ */
+		/* 		/\* 	jw_print("Average checkpoint time: %llu\n", (total / samples)); *\/ */
+		/* 		/\* } *\/ */
+		/* 	} */
+			//			jw_print("Returned from checkpoint in thread %d\n", jw_get_thread_id());
+		/* } */
 		
 		//		jw_print("\nHave restored: %d\n", have_restored);
 		
 		if (ticks % 32 == 0 && ticks > 0) {
-			/* jw_print("Restoring, ticks = %d\n", ticks); */
-			/* jw_restore_checkpoint(); */
-			/* jw_print("done restoring\n"); */
+			jw_print("Restoring, ticks = %d\n", ticks);
+			jw_restore_checkpoint();
+			jw_print("done restoring\n");
 		}
 		vPortYieldFromTick();
 	}

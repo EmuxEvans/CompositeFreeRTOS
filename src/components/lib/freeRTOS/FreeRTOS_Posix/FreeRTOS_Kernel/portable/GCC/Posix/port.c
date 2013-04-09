@@ -255,6 +255,8 @@ void vPortYieldFromTick( void )
 /*-----------------------------------------------------------*/
 extern int have_restored;
 void timer_tick (void) {
+	u64_t start, end, total, samples;
+	start = end = total = samples;
 	while(1) {
 		//		jw_lock();
 		//		jw_print("Got timer tick. Total ticks: %d\n", ticks);
@@ -265,9 +267,18 @@ void timer_tick (void) {
 		/* } */
 		
 		if (ticks % CHECKPOINT_INTERVAL == 0 && ticks % 32 != 0) {
+			rdtscll(start);
 			int ret = jw_checkpoint();
 			if (ret == 1) {
 				jw_print("Have returned from a restore.\n");
+			} else {
+				rdtscll(end);
+				if (end > start) {
+					jw_print("Checkpoint time (cycles): %llu\n", end - start);
+					total += (end - start);
+					samples++;
+					jw_print("Average checkpoint time: %llu\n", (total / samples));
+				}
 			}
 			//			jw_print("Returned from checkpoint in thread %d\n", jw_get_thread_id());
 		}

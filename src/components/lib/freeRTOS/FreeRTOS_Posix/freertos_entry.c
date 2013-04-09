@@ -185,8 +185,8 @@ int freeRTOS_entry( void )
 	jw_checkpoint();
 	/* CREATE ALL THE DEMO APPLICATION TASKS. */
 	/* vStartMathTasks( tskIDLE_PRIORITY ); */
-	vStartCheckpointTask();
-	/* vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY ); */
+	/* vStartCheckpointTask(); */
+	vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY );
 /* 	vCreateBlockTimeTasks(); */
 /* 	vStartSemaphoreTasks( mainSEMAPHORE_TASK_PRIORITY ); */
 /* 	vStartMultiEventTasks(); */

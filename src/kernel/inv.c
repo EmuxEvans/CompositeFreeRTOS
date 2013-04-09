@@ -553,7 +553,6 @@ cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
 	{								\
 		if (arg1) return thd->fault_regs. name ;		\
 		if (!(thd->flags & THD_STATE_PREEMPTED)) return 0;	\
-		printk("Calling get freg. WRONG\n");                    \
 		return thd->regs. name ;				\
 	}
 	case COS_THD_GET_FIP: __GET_FREG(ip);
@@ -573,7 +572,6 @@ cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
 #define __SET_FREG(name)							\
 	{							        \
 		thd->fault_regs. name = arg1;			\
-		printk("Calling set freg. %x\n", (unsigned int) arg1);	\
 		return 0;						\
 	}
 	case COS_THD_SET_FIP: __SET_FREG(ip);
@@ -593,8 +591,6 @@ cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
 
 #define __GET_REG(name)							\
 	{								\
-		printk("Thread %d | ", thdid);                      \
-		printk("Calling get reg %x\n", thd->regs .name);	\
 		if (arg1) return thd->regs. name ;			\
 		return thd->regs. name ;				\
 	}
@@ -792,7 +788,6 @@ switch_thread_get_target(unsigned short int tid, struct thread *curr,
 			*ret_code = COS_SCHED_RET_INVAL;
 		}
 		/* error otherwise */
-		printk("JWW: thread was null\n");
 		goto ret_err;
 	}
 
@@ -877,7 +872,7 @@ cos_syscall_switch_thread_cont(int spd_id, unsigned short int rthd_id,
 
 	*preempt = 0;
 	curr = core_get_curr_thd();
-	printk("thd %d, switch thd core %d\n", thd_get_id(curr), get_cpuid()); 
+	//	printk("thd %d, switch thd core %d\n", thd_get_id(curr), get_cpuid()); 
 
 	curr_spd = thd_validate_get_current_spd(curr, spd_id);
 	if (unlikely(!curr_spd)) {
@@ -948,7 +943,7 @@ cos_syscall_switch_thread_cont(int spd_id, unsigned short int rthd_id,
 	update_sched_evts(thd, thd_sched_flags, curr, curr_sched_flags);
 	/* success for this current thread */
 	curr->regs.ax = COS_SCHED_RET_SUCCESS;
-	printk("core %d: switch %d -> %d\n", get_cpuid(), thd_get_id(curr), thd_get_id(thd));
+	//	printk("core %d: switch %d -> %d\n", get_cpuid(), thd_get_id(curr), thd_get_id(thd));
 	event_record("switch_thread", thd_get_id(curr), thd_get_id(thd));
 
 	return &thd->regs;

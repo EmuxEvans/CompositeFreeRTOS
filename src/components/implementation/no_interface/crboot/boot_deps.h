@@ -475,15 +475,15 @@ checkpoint_checkpt(spdid_t caller)
 {
 	int i, cur_thd;
 	struct spd_local_md *md;
-	printc("checkpoint called, copying memory!\n");
+	//	printc("checkpoint called, copying memory!\n");
 	LOCK();
 	md = &local_md[caller];
 	assert(md);
-	printc("about to memcpy 0x%x bytes from 0x%x to 0x%x\n", md->page_end - md->page_start, md->page_start, md->checkpt_region_start);
+	//	printc("about to memcpy 0x%x bytes from 0x%x to 0x%x\n", md->page_end - md->page_start, md->page_start, md->checkpt_region_start);
 	memcpy(md->checkpt_region_start, md->page_start, (md->page_end - md->page_start));
 
 	cur_thd = cos_get_thd_id();
-	printc("Current thread: %d\n", cur_thd);
+	//	printc("Current thread: %d\n", cur_thd);
 
 	/* 
 	 * Checkpoint the threads that belong to this spdid. 
@@ -495,9 +495,9 @@ checkpoint_checkpt(spdid_t caller)
 	 */
 	for (i = 0; i < 256; i++) {
 		if (thread_regs[i].spdid == caller) {
-			printc("Saving thread %d\n", i);
+			//			printc("Saving thread %d\n", i);
 			if (i == cur_thd) {
-				printc("Thread %d is the current thread\n", i);
+				//				printc("Thread %d is the current thread\n", i);
 				thread_regs[i].regs.ip = cos_thd_cntl(COS_THD_INVFRM_IP, i, 1, 0);
 				thread_regs[i].regs.sp = cos_thd_cntl(COS_THD_INVFRM_SP, i, 1, 0);
 				thread_regs[i].regs.ax = (long) 1;
@@ -506,7 +506,7 @@ checkpoint_checkpt(spdid_t caller)
 			} else { 
 				cos_regs_save(i, caller, NULL, &thread_regs[i]);
 			}
-			cos_regs_print(&thread_regs[i]);
+			//			cos_regs_print(&thread_regs[i]);
 		}
 	}
 
@@ -529,10 +529,10 @@ checkpoint_checkpt(spdid_t caller)
 	return 0;
 }
 
-int 
+static inline int 
 checkpoint_restore_helper(spdid_t caller, int use_fault_regs) 
 {
-	printc("restore checkpoint called... restoring... from thread %d\n", cos_get_thd_id());
+	//	printc("restore checkpoint called... restoring... from thread %d\n", cos_get_thd_id());
 	struct spd_local_md *md;
 	int i, thd_id;
 
@@ -543,22 +543,22 @@ checkpoint_restore_helper(spdid_t caller, int use_fault_regs)
 
 	for (i = 0; i < 256; i++) {
 		if (thread_regs[i].spdid == caller) {
-			printc("Restoring thread %d\n", i);
+			//			printc("Restoring thread %d\n", i);
 			cos_regs_restore(&thread_regs[i]);
-			cos_regs_print(&thread_regs[i]);
+			//			cos_regs_print(&thread_regs[i]);
 		}
 	}
 
 	// properly restore the faulting thread'
 	if (use_fault_regs) {
 		thd_id = cos_get_thd_id();
-		printc("Resetting fault regs of thread %d\n", thd_id);
+		//		printc("Resetting fault regs of thread %d\n", thd_id);
 		cos_regs_fault_restore(&thread_regs[thd_id]);
-		cos_regs_print(&thread_regs[thd_id]);
-		printc("\n");
+		//		cos_regs_print(&thread_regs[thd_id]);
+		//		printc("\n");
 	}
 	
-	printc("Done restoring...\n");
+	//	printc("Done restoring...\n");
 	UNLOCK();
 	return 1;
 	

@@ -260,19 +260,19 @@ void timer_tick (void) {
 		//		jw_print("Got timer tick. Total ticks: %d\n", ticks);
 		//check if we're done running here. for now, forget it.
 		ticks++;
-		if (ticks == 2) {
-			have_restored = jw_checkpoint();
+		/* if (ticks == 2) { */
+		/* 	have_restored = jw_checkpoint(); */
+		/* } */
+		
+		if (ticks % CHECKPOINT_INTERVAL == 0 && ticks % 32 != 0) {
+			int ret = jw_checkpoint();
+			if (ret == 1) {
+				jw_print("Have returned from a restore.\n");
+			}
+			//			jw_print("Returned from checkpoint in thread %d\n", jw_get_thread_id());
 		}
 		
-		/* if (ticks % CHECKPOINT_INTERVAL == 0 && ticks % 32 != 0) { */
-		/* 	int ret = jw_checkpoint(); */
-		/* 	if (ret == 1) { */
-		/* 		jw_print("WHOA MAN\n"); */
-		/* 	} */
-		/* 	jw_print("Returned from checkpoint in thread %d\n", jw_get_thread_id()); */
-		/* }  */
-		
-		jw_print("\nHave restored: %d\n", have_restored);
+		//		jw_print("\nHave restored: %d\n", have_restored);
 		
 		if (ticks % 32 == 0 && ticks > 0) {
 			/* jw_print("Restoring, ticks = %d\n", ticks); */

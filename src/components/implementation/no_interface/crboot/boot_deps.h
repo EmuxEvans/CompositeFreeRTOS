@@ -539,7 +539,18 @@ checkpoint_restore_helper(spdid_t caller, int use_fault_regs)
 	LOCK();
 	md = &local_md[caller];
 	assert(md);
+
+	u64_t start, end;
+	start = end = 0;
+
+	rdtscll(start);
 	memcpy(md->page_start, md->checkpt_region_start, md->page_end - md->page_start);
+	rdtscll(end);
+
+	if (end > start) {
+		printc("Memcpy time (cycles): %llu\n", (end - start));
+	}
+	
 
 	for (i = 0; i < 256; i++) {
 		if (thread_regs[i].spdid == caller) {
@@ -586,12 +597,12 @@ checkpoint_restore(spdid_t caller)
 	ret = checkpoint_restore_helper(caller, 0);
 	rdtscll(end);
 	
-	if (end > start) {
-		restore_samples++;
-		total_restore_time += (end - start);
-		printc("Restore time (cycles): %llu\n", (end - start));
-		printc("Average Restore time (cycles): %llu\n", (total_restore_time / restore_samples));
-	}
+	/* if (end > start) { */
+	/* 	restore_samples++; */
+	/* 	total_restore_time += (end - start); */
+	/* 	printc("Restore time (cycles): %llu\n", (end - start)); */
+	/* 	printc("Average Restore time (cycles): %llu\n", (total_restore_time / restore_samples)); */
+	/* } */
 
 	return ret;
 }

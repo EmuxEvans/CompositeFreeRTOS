@@ -157,20 +157,20 @@ static void vCheckpointTask( void *pvParameters )
 	volatile u64_t x = 0;
 	u64_t tsc;
 
-	//	jw_print(pcTaskStartMsg);
+	//	freertos_print(pcTaskStartMsg);
 
 	for(;;)
 	{
 		x++;
 		if (x % 1000000 == 0) {
-			jw_print("x: %llu (u64_t)\n", x);
+			freertos_print("x: %llu (u64_t)\n", x);
 		}
 		rdtscll(tsc);
 
 		if (tsc % 12345555 == 0 && (!have_restored)) {
-			jw_print("About to page fault? TSC was accepted value\n");
+			freertos_print("About to page fault? TSC was accepted value\n");
 			x = (int)(*((char *)0));
-			/* jw_print("what?\n"); */
+			/* freertos_print("what?\n"); */
 		}
 	}
 }
@@ -182,7 +182,7 @@ void vStartCheckpointTask() {
 
 int freeRTOS_entry( void )
 {
-	jw_checkpoint();
+	freertos_checkpoint();
 	/* CREATE ALL THE DEMO APPLICATION TASKS. */
 	/* vStartMathTasks( tskIDLE_PRIORITY ); */
 	/* vStartCheckpointTask(); */
@@ -222,7 +222,7 @@ int freeRTOS_entry( void )
 
 	/* Set the scheduler running.  This function will not return unless a task calls vTaskEndScheduler(). */
 	vTaskStartScheduler();
-	jw_print("END OF FREERTOS EXECUTION\n");
+	freertos_print("END OF FREERTOS EXECUTION\n");
 	return 1;
 }
 /*-----------------------------------------------------------*/

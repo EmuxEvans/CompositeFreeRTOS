@@ -134,10 +134,10 @@ const unsigned portBASE_TYPE uxQueueSize = 10;
 static void lowPrioRdtscTask( void *pvParameters )
 {
 	// I HATE THEIR PROGRAMMING STYLE.
-	jw_print("Started tsc task\n");
+	freertos_print("Started tsc task\n");
 	for( ;; ) 
 	{
-		//		jw_print("Running tsc task\n");
+		//		freertos_print("Running tsc task\n");
 		rdtscll(lastTSCval);
 	}
 }
@@ -164,11 +164,11 @@ short sError = pdFALSE;
 		rdtscll(tsc);
 		if (tsc > lastTSCval && lastTSCval > 0) {
 			total_interrupt_latency += (tsc - lastTSCval);
-			jw_print("interrupt_latency: %llu\n", tsc - lastTSCval);
+			freertos_print("interrupt_latency: %llu\n", tsc - lastTSCval);
 		}
 		interrupt_measurements++;
 		if (interrupt_measurements % 10 == 0 && interrupt_measurements > 0) { 
-//			jw_print("Average interrupt latency: %llu\n", total_interrupt_latency / interrupt_measurements);
+//			freertos_print("Average interrupt latency: %llu\n", total_interrupt_latency / interrupt_measurements);
 		}
 
 		/* for( usLoop = 0; usLoop < usNumToProduce; ++usLoop ) */
@@ -192,7 +192,7 @@ short sError = pdFALSE;
 
 		/* 		/\* Update the value we are going to post next time around. *\/ */
 		/* 		++usValue; */
-		/* 		/\* jw_print("Produced message\n"); *\/ */
+		/* 		/\* freertos_print("Produced message\n"); *\/ */
 		/* 	} */
 		/* } */
 
@@ -225,7 +225,7 @@ short sError = pdFALSE;
 		{
 			if( xQueueReceive( *pxQueue, &usData, ( portTickType ) 0 ) == pdPASS )
 			{
-				/* jw_print("Consumed message\n"); */
+				/* freertos_print("Consumed message\n"); */
 				/* if( usData != usExpectedValue ) */
 				/* { */
 				/* 	/\* This is not what we expected to receive so an error has  */
@@ -257,9 +257,9 @@ short sError = pdFALSE;
 				
 
 				if (latency_measurements % 50 == 0 && latency_measurements != 0) {
-					jw_print("Average latency for producer consumer queue: %llu\n", total_latency / latency_measurements);
+					freertos_print("Average latency for producer consumer queue: %llu\n", total_latency / latency_measurements);
 				}
-				//				jw_print("Got the expected value in the queue.\n");
+				//				freertos_print("Got the expected value in the queue.\n");
 			}
 		}
 

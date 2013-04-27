@@ -114,7 +114,7 @@ void vStartMathTasks( unsigned portBASE_TYPE uxPriority )
 	xTaskCreate( vCompetingMathTask2, "Math6", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 5 ] ), uxPriority, NULL );
 	xTaskCreate( vCompetingMathTask3, "Math7", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 6 ] ), uxPriority, NULL );
 	xTaskCreate( vCompetingMathTask4, "Math8", mathSTACK_SIZE, ( void * ) &( usTaskCheck[ 7 ] ), uxPriority, NULL );
-	jw_print("Created all tasks...\n");
+	freertos_print("Created all tasks...\n");
 }
 /*-----------------------------------------------------------*/
 
@@ -128,8 +128,8 @@ const char * const pcTaskFailMsg = "Math task 1 failed.\r\n";
 short sError = pdFALSE;
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
-	//jw_print("vCompetingMathTask1\n");
-	jw_print(pcTaskStartMsg);
+	//freertos_print("vCompetingMathTask1\n");
+	freertos_print(pcTaskStartMsg);
 
 	/* The variable this task increments to show it is still running is passed in 
 	as the parameter. */
@@ -151,10 +151,10 @@ short sError = pdFALSE;
 		if( fabs( d4 - dAnswer ) > 0.001 )
 		{
 			vPrintDisplayMessage( &pcTaskFailMsg );
-			jw_print(pcTaskFailMsg);
+			freertos_print(pcTaskFailMsg);
 			sError = pdTRUE;
 		} else {
-			jw_print("Math task 1 calculation successful\n");
+			freertos_print("Math task 1 calculation successful\n");
 		}
 
 		if( sError == pdFALSE )
@@ -181,7 +181,7 @@ short sError = pdFALSE;
 
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
-	jw_print(pcTaskStartMsg);
+	freertos_print(pcTaskStartMsg);
 	/* The variable this task increments to show it is still running is passed in 
 	as the parameter. */
 	pusTaskCheckVariable = ( unsigned short * ) pvParameters;
@@ -204,7 +204,7 @@ short sError = pdFALSE;
 			vPrintDisplayMessage( &pcTaskFailMsg );
 			sError = pdTRUE;
 		} else { 
-			//			jw_print("Math task 2 successful\n");
+			//			freertos_print("Math task 2 successful\n");
 		}
 
 		if( sError == pdFALSE )
@@ -232,12 +232,12 @@ short sError = pdFALSE;
 
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
-	jw_print(pcTaskStartMsg);
+	freertos_print(pcTaskStartMsg);
 	/* The variable this task increments to show it is still running is passed in 
 	as the parameter. */
 	pusTaskCheckVariable = ( unsigned short * ) pvParameters;
 
-	jw_print("starting math task 3 malloc\n");
+	freertos_print("starting math task 3 malloc\n");
 
 	pdArray = ( portDOUBLE * ) pvPortMalloc( ( size_t ) 250 * sizeof( portDOUBLE ) );
 
@@ -245,7 +245,7 @@ short sError = pdFALSE;
 	array.  Then run through the array adding up all the values.  If the two totals 
 	do not match, stop the check variable from incrementing. */
 	
-	jw_print("starting math task 3 loop\n");
+	freertos_print("starting math task 3 loop\n");
 
 	for( ;; )
 	{
@@ -258,7 +258,7 @@ short sError = pdFALSE;
 			dTotal1 += ( portDOUBLE ) usPosition + 5.5;	
 		}
 
-		//		jw_print("yielding from math task 3\n");
+		//		freertos_print("yielding from math task 3\n");
 		taskYIELD();
 
 		for( usPosition = 0; usPosition < usArraySize; usPosition++ )
@@ -272,7 +272,7 @@ short sError = pdFALSE;
 			vPrintDisplayMessage( &pcTaskFailMsg );
 			sError = pdTRUE;
 		} else { 
-			//			jw_print("Math task 3 successful\n");
+			//			freertos_print("Math task 3 successful\n");
 		}
 
 		taskYIELD();
@@ -299,8 +299,8 @@ short sError = pdFALSE;
 
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
-	jw_print("Started math task 4\n");
-	jw_print(pcTaskStartMsg);
+	freertos_print("Started math task 4\n");
+	freertos_print(pcTaskStartMsg);
 	/* The variable this task increments to show it is still running is passed in 
 	as the parameter. */
 	pusTaskCheckVariable = ( unsigned short * ) pvParameters;
@@ -321,7 +321,7 @@ short sError = pdFALSE;
 			dTotal1 += ( portDOUBLE ) usPosition * 12.123;	
 		}
 
-		//		jw_print("yielding from task 4\n");
+		//		freertos_print("yielding from task 4\n");
 		taskYIELD();
 
 		for( usPosition = 0; usPosition < usArraySize; usPosition++ )
@@ -335,7 +335,7 @@ short sError = pdFALSE;
 			vPrintDisplayMessage( &pcTaskFailMsg );
 			sError = pdTRUE;
 		} else {
-			//		jw_print("Math task 4 successful\n");
+			//		freertos_print("Math task 4 successful\n");
 		}
 
 		taskYIELD();

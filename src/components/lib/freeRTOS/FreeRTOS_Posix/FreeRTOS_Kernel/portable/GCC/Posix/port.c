@@ -126,25 +126,18 @@ static void prvSetupTimerInterrupt( void );
 /*-----------------------------------------------------------*/
 
 void *prvWaitForStart( void *pvParams) {
-	jw_print("In prvWaitForStart\n");
-	//	xParams *pxParams = (xParams *) pvParams;
-	if (jw_get_thread_id() == freertos_timer_thread) {
+	freertos_print("In prvWaitForStart\n");
+	if (freertos_get_thread_id() == freertos_timer_thread) {
 		timer_init();
 	}
 
-	xParams *pxParams = task_thread_params[jw_get_thread_id()];
+	xParams *pxParams = task_thread_params[freertos_get_thread_id()];
 	pdTASK_CODE pvCode = pxParams->pxCode;
 	void *pParams = pxParams->pvParams;
 	
-	//	vPortFree(pvParams);
-	
-	// pthread_cleanup_push?
-
-	jw_print("Running task's function!\n");
+	freertos_print("Running task's function!\n");
 	pvCode (pParams);
 	
-	// other pthread crap here.
-
 	return (void *) NULL;
 }
 
@@ -158,17 +151,16 @@ portSTACK_TYPE *pxPortInitialiseStack( portSTACK_TYPE *pxTopOfStack, pdTASK_CODE
 	pxThisThreadParams->pxCode = pxCode;
 	pxThisThreadParams->pvParams = pvParameters;
 
-	// enter a critical section here.
-	jw_lock();
+	freertos_lock();
 
-	int thd_id = jw_create_thread((int) prvWaitForStart, (int) pxThisThreadParams, 0);
+	int thd_id = freertos_create_thread((int) prvWaitForStart, (int) pxThisThreadParams, 0);
 
 	task_thread_params[thd_id] = pxThisThreadParams;
 	lastCreatedTask = thd_id;
 
-	jw_print("FreeRTOS started thd %d\n", thd_id);//.. switching to it...\n");
+	freertos_print("FreeRTOS started thd %d\n", thd_id);
 	
-	jw_unlock();
+	freertos_unlock();
 
 	return pxTopOfStack;
 }
@@ -181,7 +173,7 @@ void pvAddTaskMapping (int thread_id, xTaskHandle task_handle) {
 }
 
 void pvAddTaskHandle (void *pxTaskHandle) {
-	jw_print("Adding task handle, thread id: %d\n", lastCreatedTask);
+	freertos_print("Adding task handle, thread id: %d\n", lastCreatedTask);
 	pvAddTaskMapping((int) lastCreatedTask, (xTaskHandle) pxTaskHandle);
 }
 
@@ -200,13 +192,13 @@ int prvGetThreadHandle( xTaskHandle task_handle) {
 			return taskMappings[i].thd_id;
 		}
 	}
-	jw_print("NO TASK FOUND FOR THE TASK HANDLE\n");
+	freertos_print("NO TASK FOUND FOR THE TASK HANDLE\n");
 	return 0;
 }
 
 void vPortCosSwitchThread(int flags) {
 
-	jw_lock();
+	freertos_lock();
 
 	int cur_thd_id = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
 	
@@ -214,16 +206,11 @@ void vPortCosSwitchThread(int flags) {
 	
 	int next_thd = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
 	
-	jw_unlock();
+	freertos_unlock();
 
-	if (cur_thd_id != jw_get_thread_id()) {
-		// we have to be executing in the timer thread here.
-		//		jw_print("WTF: cur_thread_id in FreeRTOS (%d) != cos thread id (%d)\n", cur_thd_id, jw_get_thread_id());
-	}
-
-	if (jw_get_thread_id() != next_thd) {
-		//		jw_print("Switching from thd %d to thd %d\n", jw_get_thread_id(), next_thd);	
-		jw_switch_thread(next_thd, flags);
+	if (freertos_get_thread_id() != next_thd) {
+		//		freertos_print("Switching from thd %d to thd %d\n", freertos_get_thread_id(), next_thd);	
+		freertos_switch_thread(next_thd, flags);
 	}
 }
 
@@ -232,7 +219,6 @@ void vPortCosSwitchThread(int flags) {
  */
 void vPortYield( void )
 {
-	//	jw_print("Manual yield...\n");
 	vPortCosSwitchThread(0);
 	return;
 }
@@ -258,51 +244,51 @@ void timer_tick (void) {
 	/* u64_t start, end, total, samples; */
 	/* start = end = total = samples; */
 	while(1) {
-		//		jw_lock();
-		//		jw_print("Got timer tick. Total ticks: %d\n", ticks);
+		//		freertos_lock();
+		//		freertos_print("Got timer tick. Total ticks: %d\n", ticks);
 		//check if we're done running here. for now, forget it.
 		ticks++;
 		if (ticks == 2) {
-			have_restored = jw_checkpoint();
+			have_restored = freertos_checkpoint();
 		}
 		
 		/* if (ticks % CHECKPOINT_INTERVAL == 0 && ticks % 32 != 0) { */
 		/* 	rdtscll(start); */
-		/* 	int ret = jw_checkpoint(); */
+		/* 	int ret = freertos_checkpoint(); */
 		/* 	if (ret == 1) { */
-		/* 		jw_print("Have returned from a restore.\n"); */
+		/* 		freertos_print("Have returned from a restore.\n"); */
 		/* 	} else { */
 		/* 		/\* rdtscll(end); *\/ */
 		/* 		/\* if (end > start) { *\/ */
-		/* 		/\* 	jw_print("Checkpoint time (cycles): %llu\n", end - start); *\/ */
+		/* 		/\* 	freertos_print("Checkpoint time (cycles): %llu\n", end - start); *\/ */
 		/* 		/\* 	total += (end - start); *\/ */
 		/* 		/\* 	samples++; *\/ */
-		/* 		/\* 	jw_print("Average checkpoint time: %llu\n", (total / samples)); *\/ */
+		/* 		/\* 	freertos_print("Average checkpoint time: %llu\n", (total / samples)); *\/ */
 		/* 		/\* } *\/ */
 		/* 	} */
-			//			jw_print("Returned from checkpoint in thread %d\n", jw_get_thread_id());
+			//			freertos_print("Returned from checkpoint in thread %d\n", freertos_get_thread_id());
 		/* } */
 		
-		//		jw_print("\nHave restored: %d\n", have_restored);
+		//		freertos_print("\nHave restored: %d\n", have_restored);
 		
 		if (ticks % 32 == 0 && ticks > 0) {
-			jw_print("Restoring, ticks = %d\n", ticks);
-			jw_restore_checkpoint();
-			jw_print("done restoring\n");
+			freertos_print("Restoring, ticks = %d\n", ticks);
+			freertos_restore_checkpoint();
+			freertos_print("done restoring\n");
 		}
 		vPortYieldFromTick();
 	}
 }
 
 void timer_init(void) {
-	jw_print("Timer init called...\n");
+	freertos_print("Timer init called...\n");
 	ticks = 0;
 	wakeup_time = 0;
 	child_wakeup_time = 0;
 	timer_tick();
 
 	// should never get here
-	jw_print("ERROR ERROR ERROR IN TIMER_INIT: TIMER_TICK() RETURNED\n");
+	freertos_print("ERROR ERROR ERROR IN TIMER_INIT: TIMER_TICK() RETURNED\n");
 	while(1);
 
 }
@@ -330,19 +316,19 @@ portBASE_TYPE xPortStartScheduler( void )
 	// need to call prvSetupTimerInterrupt()
 	// and then restore the context of the first task that is going to run
 	// and start it.
-	jw_print("Starting freeRTOS scheduler\n");
+	freertos_print("Starting freeRTOS scheduler\n");
 	vPortEnableInterrupts();
 	prvSetupTimerInterrupt();
 	
-	//	jw_checkpoint();
-	jw_print("freertos: Switching to timer thread...\n");
-	jw_switch_thread(freertos_timer_thread, 0);
+	//	freertos_checkpoint();
+	freertos_print("freertos: Switching to timer thread...\n");
+	freertos_switch_thread(freertos_timer_thread, 0);
 
-	jw_print("Switched back to main from timer thread.\n");
+	freertos_print("Switched back to main from timer thread.\n");
 
 	/* int first_thread = prvGetThreadHandle(xTaskGetCurrentTaskHandle()); */
-	/* jw_print("First thread: %d\n", first_thread); */
-	/* jw_switch_thread(first_thread, 0); */
+	/* freertos_print("First thread: %d\n", first_thread); */
+	/* freertos_switch_thread(first_thread, 0); */
 
 	return 0;
 }

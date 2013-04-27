@@ -17,11 +17,11 @@ static volatile int init_thd = -1;
 #define ARG_STRLEN 512
 
 int prints(char *str) {
-	return jw_print(str);
+	return freertos_print(str);
 }
 
 int __attribute__((format(printf,1,2)))
-jw_print(char *fmt, ...)
+freertos_print(char *fmt, ...)
 {
         char s[ARG_STRLEN];
         va_list arg_ptr;
@@ -36,58 +36,58 @@ jw_print(char *fmt, ...)
         return ret;
 }
 
-void jw_lock() {
-	//	jw_print("taking lock with jw_lock\n");
+void freertos_lock() {
+	//	freertos_print("taking lock with freertos_lock\n");
 	if (cos_sched_lock_take()) {
-		jw_print("Couldn't take lock!\n\n");
+		freertos_print("Couldn't take lock!\n\n");
 		BUG();
 	}
 }
 
-void jw_unlock() {
-	//	jw_print("Releasing lock!\n");
+void freertos_unlock() {
+	//	freertos_print("Releasing lock!\n");
 	if (cos_sched_lock_release()) {
 		BUG();
 	}
 }
 
 extern int parent_sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd);
-int jw_create_thread(int a, int b, int c) {
-	jw_print("Creating thread in spd %d, current thd %d\n", cos_spd_id(), cos_get_thd_id());
+int freertos_create_thread(int a, int b, int c) {
+	freertos_print("Creating thread in spd %d, current thd %d\n", cos_spd_id(), cos_get_thd_id());
 	//	return cos_create_thread(a, b, c);
 	return parent_sched_child_thd_crt(cos_spd_id(), cos_spd_id());
 }
 
-int jw_switch_thread(int a, int b) {
+int freertos_switch_thread(int a, int b) {
 	//this is a hack. my apologies. should also lock here. 
 	freertos_clear_pending_events();
 
-	//	jw_print("Switching threads from %d to %d\n", cos_get_thd_id(), a);
+	//	freertos_print("Switching threads from %d to %d\n", cos_get_thd_id(), a);
 	return cos_switch_thread(a, b);
-	//	jw_print("Switched threads from %d to %d\n", cos_get_thd_id(), a);
+	//	freertos_print("Switched threads from %d to %d\n", cos_get_thd_id(), a);
 }
 
-int jw_get_thread_id(void) {
+int freertos_get_thread_id(void) {
 	return cos_get_thd_id();
 }
 
-int jw_brand_cntl(int a, int b, int c, int d) {
+int freertos_brand_cntl(int a, int b, int c, int d) {
 	return cos_brand_cntl(a, b, c, d);
 }
 
-int jw_brand_wire(int a, int b, int c) {
+int freertos_brand_wire(int a, int b, int c) {
 	return cos_brand_wire(a, b, c);
 }
 
-long jw_spd_id(void) {
+long freertos_spd_id(void) {
 	return cos_spd_id();
 }
 
-int jw_checkpoint(void) {
+int freertos_checkpoint(void) {
 	return checkpoint_checkpt(cos_spd_id());
 }
 
-void jw_restore_checkpoint(void) {
+void freertos_restore_checkpoint(void) {
 	checkpoint_restore(cos_spd_id());
 }
 
@@ -136,26 +136,26 @@ void freertos_sched_set_evt_urgency(u8_t evt_id, u16_t urgency)
 
 int create_timer(int timer_init)
 {
-	jw_print("Creating timer\n");
+	freertos_print("Creating timer\n");
 	int bid, ret, timer_thread;
 
 
-	bid = jw_brand_cntl(COS_BRAND_CREATE_HW, 0, 0, jw_spd_id());
+	bid = freertos_brand_cntl(COS_BRAND_CREATE_HW, 0, 0, freertos_spd_id());
 	
-	timer_thread = jw_create_thread((int)timer_init, (int)bid, 0);
+	timer_thread = freertos_create_thread((int)timer_init, (int)bid, 0);
 
 	/* if (NULL == PERCPU_GET(sched_base_state)->timer) BUG(); */
 	/* if (0 > sched_add_thd_to_brand(cos_spd_id(), bid, PERCPU_GET(sched_base_state)->timer->id)) BUG(); */
 
-	if (jw_brand_cntl(COS_BRAND_ADD_THD, bid, timer_thread, 0) < 0) {
-		jw_print("ERROR ADDING THREAD TO BRAND\n");
+	if (freertos_brand_cntl(COS_BRAND_ADD_THD, bid, timer_thread, 0) < 0) {
+		freertos_print("ERROR ADDING THREAD TO BRAND\n");
 		while(1);
 	} else {
-		jw_print("added thread to brand\n");
+		freertos_print("added thread to brand\n");
 	}
 
-	jw_print("Timer thread has id %d with priority %s.\n", timer_thread, "t");
-	jw_brand_wire(bid, COS_HW_TIMER, 0);
+	freertos_print("Timer thread has id %d with priority %s.\n", timer_thread, "t");
+	freertos_brand_wire(bid, COS_HW_TIMER, 0);
 
 	int i;
 	for (i = 1; i < NUM_SCHED_EVTS; i++) {
@@ -166,19 +166,19 @@ int create_timer(int timer_init)
 			COS_SCHED_EVT_FLAGS(se) &= ~COS_SCHED_EVT_FREE;
 
 			if (cos_sched_cntl(COS_SCHED_THD_EVT, timer_thread, i)) {
-				jw_print("Mapping thread to event failed.\n");
+				freertos_print("Mapping thread to event failed.\n");
 				COS_SCHED_EVT_FLAGS(se) |= COS_SCHED_EVT_FREE;
 				while (1);
 				return -1;
 			} 
-			jw_print("Found a free event slot: %d\n", i);
+			freertos_print("Found a free event slot: %d\n", i);
 			freertos_sched_set_evt_urgency(i, 1);
 			break;
 		}
 	}
 
 	if (i >= NUM_SCHED_EVTS) {
-		jw_print("Found no available event slots...\n");
+		freertos_print("Found no available event slots...\n");
 	}
 
 	return timer_thread;
@@ -199,12 +199,12 @@ void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
 	switch (t) {
 	case COS_UPCALL_CREATE:
 		//freertos_ret_thd();
-		jw_print("Calling function to start thread....\n");
+		freertos_print("Calling function to start thread....\n");
 		((crt_thd_fn_t)arg1)(arg2);
-		jw_print("Thread terminated %d\n", jw_get_thread_id);
+		freertos_print("Thread terminated %d\n", freertos_get_thread_id);
 		break;
 	case COS_UPCALL_DESTROY:
-		while(1) jw_switch_thread(init_thd, 0);
+		while(1) freertos_switch_thread(init_thd, 0);
 		BUG();
 		break;
 	case COS_UPCALL_UNHANDLED_FAULT:
@@ -223,7 +223,7 @@ void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
 			prvWaitForStart(NULL);
 			return;
 		} else { 
-			jw_print("Init thd: %d\n", init_thd);
+			freertos_print("Init thd: %d\n", init_thd);
 		}
 		sched_init();
 		break;

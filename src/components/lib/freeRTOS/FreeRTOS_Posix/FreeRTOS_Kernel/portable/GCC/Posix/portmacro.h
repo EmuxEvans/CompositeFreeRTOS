@@ -114,8 +114,8 @@ extern "C" {
 extern void vPortDisableInterrupts(void);
 extern void vPortEnableInterrupts(void);
 
-#define portENTER_CRITICAL() jw_lock()
-#define portEXIT_CRITICAL() jw_unlock()
+#define portENTER_CRITICAL() freertos_lock()
+#define portEXIT_CRITICAL() freertos_unlock()
 #define portDISABLE_INTERRUPTS() vPortDisableInterrupts()
 #define portENABLE_INTERRUPTS() vPortEnableInterrupts()
 /*-----------------------------------------------------------*/

@@ -80,7 +80,7 @@ task.h is included from an application file. */
 void *pvPortMalloc( size_t xWantedSize )
 {
 	void *pvReturn;
-	//	jw_print("WRONG MALLOC, IDIOT\n");
+	//	freertos_print("WRONG MALLOC, IDIOT\n");
 	vTaskSuspendAll();
 	{
 		pvReturn = malloc( xWantedSize );
@@ -91,7 +91,7 @@ void *pvPortMalloc( size_t xWantedSize )
 	{
 		if( pvReturn == NULL )
 		{
-			jw_print("Malloc failed from heap_3\n");
+			freertos_print("Malloc failed from heap_3\n");
 			extern void vApplicationMallocFailedHook( void );
 			vApplicationMallocFailedHook();
 		}

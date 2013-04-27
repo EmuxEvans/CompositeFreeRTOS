@@ -105,7 +105,7 @@ static size_t xNextFreeByte = ( size_t ) 0;
 void *pvPortMalloc( size_t xWantedSize )
 {
 void *pvReturn = NULL;
- jw_print("Called pvPortMalloc in heap_1.\n");
+ freertos_print("Called pvPortMalloc in heap_1.\n");
 	/* Ensure that blocks are always aligned to the required number of bytes. */
 	#if portBYTE_ALIGNMENT != 1
 		if( xWantedSize & portBYTE_ALIGNMENT_MASK )
@@ -115,7 +115,7 @@ void *pvReturn = NULL;
 		}
 	#endif
 
-		//		jw_print("Suspending in pvPortMalloc()\n");
+		//		freertos_print("Suspending in pvPortMalloc()\n");
 	vTaskSuspendAll();
 	{
 		/* Check there is enough room left for the allocation. */
@@ -127,12 +127,12 @@ void *pvReturn = NULL;
 			pvReturn = &( xHeap.ucHeap[ xNextFreeByte ] );
 			xNextFreeByte += xWantedSize;
 		} else {
-			jw_print("Not enough memory to allocate requested size, %u, only have %u\n", xWantedSize, configTOTAL_HEAP_SIZE - xNextFreeByte);
-			jw_print("Heap size: %u\n", configTOTAL_HEAP_SIZE);
-			jw_print("Current bump pointer %u\n", xNextFreeByte);
+			freertos_print("Not enough memory to allocate requested size, %u, only have %u\n", xWantedSize, configTOTAL_HEAP_SIZE - xNextFreeByte);
+			freertos_print("Heap size: %u\n", configTOTAL_HEAP_SIZE);
+			freertos_print("Current bump pointer %u\n", xNextFreeByte);
 		}
 	}
-	//	jw_print("Resuming in pvPortMalloc()\n");
+	//	freertos_print("Resuming in pvPortMalloc()\n");
 	xTaskResumeAll();
 
 	#if( configUSE_MALLOC_FAILED_HOOK == 1 )
@@ -145,7 +145,7 @@ void *pvReturn = NULL;
 	}
 	#endif
 	
-	//	jw_print("Returning from pvPortMalloc()\n");
+	//	freertos_print("Returning from pvPortMalloc()\n");
 	return pvReturn;
 }
 /*-----------------------------------------------------------*/

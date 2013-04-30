@@ -157,7 +157,7 @@ static void vCheckpointTask( void *pvParameters )
 	volatile u64_t x = 0;
 	u64_t tsc;
 
-	//	freertos_print(pcTaskStartMsg);
+	freertos_print(pcTaskStartMsg);
 
 	for(;;)
 	{

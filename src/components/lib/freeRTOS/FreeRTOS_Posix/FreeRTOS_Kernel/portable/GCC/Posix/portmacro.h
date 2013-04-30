@@ -99,7 +99,7 @@ extern "C" {
 #define portLONG		long
 #define portSHORT		int
 #define portSTACK_TYPE	unsigned portCHAR
-#define portBASE_TYPE	char
+#define portBASE_TYPE	int
 
 #if( configUSE_16_BIT_TICKS == 1 )
 	typedef unsigned portSHORT portTickType;

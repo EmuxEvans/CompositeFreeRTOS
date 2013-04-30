@@ -21,7 +21,7 @@ int prints(char *str) {
 }
 
 int __attribute__((format(printf,1,2)))
-freertos_print(char *fmt, ...)
+freertos_print(const char *fmt, ...)
 {
         char s[ARG_STRLEN];
         va_list arg_ptr;
@@ -53,7 +53,7 @@ void freertos_unlock() {
 
 extern int parent_sched_child_thd_crt(spdid_t spdid, spdid_t dest_spd);
 int freertos_create_thread(int a, int b, int c) {
-	freertos_print("Creating thread in spd %d, current thd %d\n", cos_spd_id(), cos_get_thd_id());
+	freertos_print("Creating thread in spd %d, current thd %d\n", (int) cos_spd_id(), cos_get_thd_id());
 	//	return cos_create_thread(a, b, c);
 	return parent_sched_child_thd_crt(cos_spd_id(), cos_spd_id());
 }
@@ -134,7 +134,7 @@ void freertos_sched_set_evt_urgency(u8_t evt_id, u16_t urgency)
 
 
 
-int create_timer(int timer_init)
+int create_timer(int timer_init_fn)
 {
 	freertos_print("Creating timer\n");
 	int bid, ret, timer_thread;
@@ -142,7 +142,7 @@ int create_timer(int timer_init)
 
 	bid = freertos_brand_cntl(COS_BRAND_CREATE_HW, 0, 0, freertos_spd_id());
 	
-	timer_thread = freertos_create_thread((int)timer_init, (int)bid, 0);
+	timer_thread = freertos_create_thread((int)timer_init_fn, (int)bid, 0);
 
 	/* if (NULL == PERCPU_GET(sched_base_state)->timer) BUG(); */
 	/* if (0 > sched_add_thd_to_brand(cos_spd_id(), bid, PERCPU_GET(sched_base_state)->timer->id)) BUG(); */
@@ -201,7 +201,7 @@ void cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3) {
 		//freertos_ret_thd();
 		freertos_print("Calling function to start thread....\n");
 		((crt_thd_fn_t)arg1)(arg2);
-		freertos_print("Thread terminated %d\n", freertos_get_thread_id);
+		freertos_print("Thread terminated %d\n", (int) freertos_get_thread_id());
 		break;
 	case COS_UPCALL_DESTROY:
 		while(1) freertos_switch_thread(init_thd, 0);

@@ -92,27 +92,38 @@ Changes from V2.0.0
 #include "task.h"
 #include "queue.h"
 #include "print.h"
+#include <jw_freertos.h>
 
 /* Demo program include files. */
 #include "PollQ.h"
 
 #define pollqSTACK_SIZE		( ( unsigned short ) configMINIMAL_STACK_SIZE )
 
+#ifdef FREERTOS_INTERRUPT_LATENCY_TEST
 /* The task that posts the incrementing number onto the queue. */
 static void vPolledQueueProducer( void *pvParameters );
 
+static void lowPrioRdtscTask( void *pvParameters );
+#endif
+
+#ifdef FREERTOS_MQ_TEST
+/* The task that posts the incrementing number onto the queue. */
+static void vPolledQueueProducerMQTest ( void *pvParameters );
 /* The task that empties the queue. */
 static void vPolledQueueConsumer( void *pvParameters );
+static u64_t total_latency = 0, latency_measurements = 0;
+#endif
 
 /* Variables that are used to check that the tasks are still running with no errors. */
 static volatile short sPollingConsumerCount = 0, sPollingProducerCount = 0;
 
+#ifdef FREERTOS_INTERRUPT_LATENCY_TEST
 /* variables to keep track of total latency for a test by JW on MQ performance.*/
-static u64_t total_latency = 0, latency_measurements = 0;
 static u64_t total_interrupt_latency = 0, interrupt_measurements = 0;
 static volatile u64_t lastTSCval = 0;
 /* Low prio task to constantly check tsc */
-static void lowPrioRdtscTask( void *pvParameters );
+#endif
+
 /*-----------------------------------------------------------*/
 
 void vStartPolledQueueTasks( unsigned portBASE_TYPE uxPriority )
@@ -124,13 +135,25 @@ const unsigned portBASE_TYPE uxQueueSize = 10;
 	xPolledQueue = xQueueCreate( uxQueueSize, ( unsigned portBASE_TYPE ) sizeof( u64_t ) );
 
 	/* Spawn the producer and consumer. */
+#ifdef FREERTOS_INTERRUPT_LATENCY_TEST
 	xTaskCreate( vPolledQueueProducer, "QProdNB", pollqSTACK_SIZE, ( void * ) &xPolledQueue, uxPriority, NULL );
-	//xTaskCreate( vPolledQueueConsumer, "QConsNB", pollqSTACK_SIZE, ( void * ) &xPolledQueue, uxPriority, NULL );
-	/* Spawn low prio task */
 	xTaskCreate( lowPrioRdtscTask, "RdTSC", pollqSTACK_SIZE, (void *) 0, uxPriority - 1, NULL);
+#ifdef FREERTOS_MQ_TEST
+#error Interrupt latency and mq tests are mutually exclusive. Please define only one.
+#endif // FREERTOS_MQ_TEST
+#endif // FREERTOS_INTERRUPT_LATENCY_TEST
+
+#ifdef FREERTOS_MQ_TEST
+	xTaskCreate( vPolledQueueProducerMQTest, "QProdNB", pollqSTACK_SIZE, ( void * ) &xPolledQueue, uxPriority, NULL );
+	xTaskCreate( vPolledQueueConsumer, "QConsNB", pollqSTACK_SIZE, ( void * ) &xPolledQueue, uxPriority, NULL );
+#ifdef FREERTOS_INTERRUPT_LATENCY_TEST
+#error Interrupt latency and mq tests are mutually exclusive. Please define only one.
+#endif // FREERTOS_INTERRUPT_LATENCY_TEST
+#endif // FREERTOS_MQ_TEST
+
 }
 /*-----------------------------------------------------------*/
-
+#ifdef FREERTOS_INTERRUPT_LATENCY_TEST
 static void lowPrioRdtscTask( void *pvParameters )
 {
 	// I HATE THEIR PROGRAMMING STYLE.
@@ -151,7 +174,7 @@ const unsigned short usNumToProduce = 1;
 const char * const pcTaskStartMsg = "Polled queue producer started.\r\n";
 const char * const pcTaskErrorMsg = "Could not post on polled queue.\r\n";
 short sError = pdFALSE;
- u64_t tsc, interrupt_latency;
+ u64_t tsc;
 
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
@@ -167,51 +190,75 @@ short sError = pdFALSE;
 			freertos_print("interrupt_latency: %llu\n", tsc - lastTSCval);
 		}
 		interrupt_measurements++;
-		if (interrupt_measurements % 10 == 0 && interrupt_measurements > 0) { 
-//			freertos_print("Average interrupt latency: %llu\n", total_interrupt_latency / interrupt_measurements);
+ 		if (interrupt_measurements % 10 == 0 && interrupt_measurements > 0) {
+ 			freertos_print("Average interrupt latency: %llu\n", total_interrupt_latency / interrupt_measurements);
+ 		}
+
+		/* Wait before we start posting again to ensure the consumer runs and
+		empties the queue. */
+		vTaskDelay( xDelay );
+	}
+}
+#endif
+
+/*-----------------------------------------------------------*/
+#ifdef FREERTOS_MQ_TEST
+static void vPolledQueueProducerMQTest ( void *pvParameters )
+{
+	
+	xQueueHandle *pxQueue;
+	const portTickType xDelay = ( portTickType ) 200 / portTICK_RATE_MS;
+	const char * const pcTaskStartMsg = "Polled queue producer started.\r\n";
+	const char * const pcTaskErrorMsg = "Could not post on polled queue.\r\n";
+	u64_t tsc, usValue = 0, usLoop, usNumToProduce = 1;
+
+	/* Queue a message for printing to say the task has started. */
+	vPrintDisplayMessage( &pcTaskStartMsg );
+
+	/* The queue being used is passed in as the parameter. */
+	pxQueue = ( xQueueHandle * ) pvParameters;
+
+	for( ;; )
+	{		
+
+		for( usLoop = 0; usLoop < usNumToProduce; ++usLoop )
+		{
+			rdtscll(tsc);
+			/* Send an incrementing number on the queue without blocking. */
+			if( xQueueSendToBack( *pxQueue, ( void * ) &tsc, ( portTickType ) 0 ) != pdPASS )
+			{
+				/* We should never find the queue full - this is an error. */
+				vPrintDisplayMessage( &pcTaskErrorMsg );
+			}
+			else
+			{
+				/* if( sError == pdFALSE ) */
+				/* { */
+				/* 	/\* If an error has ever been recorded we stop incrementing the */
+				/* 	check variable. *\/ */
+				/* 	++sPollingProducerCount; */
+				/* } */
+
+				/* Update the value we are going to post next time around. */
+				++usValue;
+				/* freertos_print("Produced message\n"); */
+			}
 		}
-
-		/* for( usLoop = 0; usLoop < usNumToProduce; ++usLoop ) */
-		/* { */
-		/* 	rdtscll(tsc); */
-		/* 	/\* Send an incrementing number on the queue without blocking. *\/ */
-		/* 	if( xQueueSendToBack( *pxQueue, ( void * ) &tsc, ( portTickType ) 0 ) != pdPASS ) */
-		/* 	{ */
-		/* 		/\* We should never find the queue full - this is an error. *\/ */
-		/* 		vPrintDisplayMessage( &pcTaskErrorMsg ); */
-		/* 		sError = pdTRUE; */
-		/* 	} */
-		/* 	else */
-		/* 	{ */
-		/* 		if( sError == pdFALSE ) */
-		/* 		{ */
-		/* 			/\* If an error has ever been recorded we stop incrementing the  */
-		/* 			check variable. *\/ */
-		/* 			++sPollingProducerCount; */
-		/* 		} */
-
-		/* 		/\* Update the value we are going to post next time around. *\/ */
-		/* 		++usValue; */
-		/* 		/\* freertos_print("Produced message\n"); *\/ */
-		/* 	} */
-		/* } */
 
 		/* Wait before we start posting again to ensure the consumer runs and 
 		empties the queue. */
 		vTaskDelay( xDelay );
 	}
 }
-/*-----------------------------------------------------------*/
+
 
 static void vPolledQueueConsumer( void *pvParameters )
 {
-u64_t usData, usExpectedValue = 0;
-xQueueHandle *pxQueue;
-const portTickType xDelay = ( portTickType ) 200 / portTICK_RATE_MS;
-const char * const pcTaskStartMsg = "Polled queue consumer started.\r\n";
-const char * const pcTaskErrorMsg = "Incorrect value received on polled queue.\r\n";
-short sError = pdFALSE;
- u64_t cur_tsc, latency;
+	u64_t usData;
+	xQueueHandle *pxQueue;
+	const portTickType xDelay = ( portTickType ) 200 / portTICK_RATE_MS;
+	const char * const pcTaskStartMsg = "Polled queue consumer started.\r\n";
+	u64_t cur_tsc, latency;
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
 
@@ -225,27 +272,6 @@ short sError = pdFALSE;
 		{
 			if( xQueueReceive( *pxQueue, &usData, ( portTickType ) 0 ) == pdPASS )
 			{
-				/* freertos_print("Consumed message\n"); */
-				/* if( usData != usExpectedValue ) */
-				/* { */
-				/* 	/\* This is not what we expected to receive so an error has  */
-				/* 	occurred. *\/ */
-				/* 	vPrintDisplayMessage( &pcTaskErrorMsg ); */
-				/* 	sError = pdTRUE; */
-				/* 	/\* Catch-up to the value we received so our next expected value  */
-				/* 	should again be correct. *\/ */
-				/* 	usExpectedValue = usData; */
-				/* } */
-				/* else */
-				/* { */
-				/* 	if( sError == pdFALSE ) */
-				/* 	{ */
-				/* 		/\* Only increment the check variable if no errors have  */
-				/* 		occurred. *\/ */
-				/* 		++sPollingConsumerCount; */
-				/* 	} */
-				/* } */
-				/* ++usExpectedValue; */
 				rdtscll(cur_tsc);
 				if (cur_tsc < usData) continue;
 
@@ -268,6 +294,8 @@ short sError = pdFALSE;
 		vTaskDelay( xDelay );
 	}
 }
+#endif
+
 /*-----------------------------------------------------------*/
 
 /* This is called to check that all the created tasks are still running with no errors. */

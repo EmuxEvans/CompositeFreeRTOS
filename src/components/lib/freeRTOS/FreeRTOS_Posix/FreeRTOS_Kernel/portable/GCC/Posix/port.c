@@ -107,7 +107,7 @@ volatile uint64_t wakeup_time;
 volatile uint64_t child_wakeup_time;
 
 static int freertos_timer_thread = -1;
-static int scheduler_done = 0;
+//static int scheduler_done = 0;
 
 
 /* 
@@ -119,11 +119,103 @@ static int scheduler_done = 0;
 
 /*-----------------------------------------------------------*/
 
+/*-----------------------------------------------------------*/
+
+int prvGetThreadHandle( xTaskHandle task_handle) {
+	int i;
+	for (i = 0; i < MAX_NUMBER_OF_TASKS; i++) {
+		if (taskMappings[i].task == task_handle) {
+			return taskMappings[i].thd_id;
+		}
+	}
+	freertos_print("NO TASK FOUND FOR THE TASK HANDLE\n");
+	return 0;
+}
+
+void vPortCosSwitchThread(int flags) {
+
+	freertos_lock();
+
+	prvGetThreadHandle(xTaskGetCurrentTaskHandle());
+	
+	vTaskSwitchContext();
+	
+	int next_thd = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
+	
+	freertos_unlock();
+
+	if (freertos_get_thread_id() != next_thd) {
+		//		freertos_print("Switching from thd %d to thd %d\n", freertos_get_thread_id(), next_thd);	
+		freertos_switch_thread(next_thd, flags);
+	}
+}
+
+/*
+ * Manual context switch.  
+ */
+void vPortYield( void )
+{
+	vPortCosSwitchThread(0);
+	return;
+}
+/*-----------------------------------------------------------*/
+
+/*
+ * Context switch function used by the tick.  This must be identical to 
+ * vPortYield() from the call to vTaskSwitchContext() onwards.  The only
+ * difference from vPortYield() is the tick count is incremented as the
+ * call comes from the tick ISR.
+ */
+void vPortYieldFromTick( void )
+{
+	/* Save context, increment tick (vtaskincrementtick()), switch context, restore context */
+	vTaskIncrementTick();
+	freertos_clear_pending_events();
+	vPortCosSwitchThread(COS_SCHED_BRAND_WAIT);
+	return;
+}
+/*-----------------------------------------------------------*/
+
+
 /*
  * Perform hardware setup to enable ticks from timer 1, compare match A.
  */
 static void prvSetupTimerInterrupt( void );
 /*-----------------------------------------------------------*/
+
+extern int have_restored;
+void timer_tick (void) {
+	while(1) {
+
+		ticks++;
+
+#ifdef FREERTOS_CHECKPOINT_TEST
+		if (ticks == 2) {
+			have_restored = freertos_checkpoint();
+		}
+
+		if (ticks % 32 == 0 && ticks > 0) {
+			freertos_print("Ticks = %llu, restoring checkpoint...\n", ticks);
+			freertos_restore_checkpoint();
+		}
+#endif
+
+		vPortYieldFromTick();
+	}
+}
+
+void timer_init(void) {
+	freertos_print("Timer init called...\n");
+	ticks = 0;
+	wakeup_time = 0;
+	child_wakeup_time = 0;
+	timer_tick();
+
+	// should never get here
+	freertos_print("ERROR ERROR ERROR IN TIMER_INIT: TIMER_TICK() RETURNED\n");
+	while(1);
+
+}
 
 void *prvWaitForStart( void *pvParams) {
 	freertos_print("In prvWaitForStart\n");
@@ -183,115 +275,7 @@ void vPortEndScheduler( void )
 {
 	/* Probably don't need this. */
 }
-/*-----------------------------------------------------------*/
 
-int prvGetThreadHandle( xTaskHandle task_handle) {
-	int i;
-	for (i = 0; i < MAX_NUMBER_OF_TASKS; i++) {
-		if (taskMappings[i].task == task_handle) {
-			return taskMappings[i].thd_id;
-		}
-	}
-	freertos_print("NO TASK FOUND FOR THE TASK HANDLE\n");
-	return 0;
-}
-
-void vPortCosSwitchThread(int flags) {
-
-	freertos_lock();
-
-	int cur_thd_id = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
-	
-	vTaskSwitchContext();
-	
-	int next_thd = prvGetThreadHandle(xTaskGetCurrentTaskHandle());
-	
-	freertos_unlock();
-
-	if (freertos_get_thread_id() != next_thd) {
-		//		freertos_print("Switching from thd %d to thd %d\n", freertos_get_thread_id(), next_thd);	
-		freertos_switch_thread(next_thd, flags);
-	}
-}
-
-/*
- * Manual context switch.  
- */
-void vPortYield( void )
-{
-	vPortCosSwitchThread(0);
-	return;
-}
-/*-----------------------------------------------------------*/
-
-/*
- * Context switch function used by the tick.  This must be identical to 
- * vPortYield() from the call to vTaskSwitchContext() onwards.  The only
- * difference from vPortYield() is the tick count is incremented as the
- * call comes from the tick ISR.
- */
-void vPortYieldFromTick( void )
-{
-	/* Save context, increment tick (vtaskincrementtick()), switch context, restore context */
-	vTaskIncrementTick();
-	freertos_clear_pending_events();
-	vPortCosSwitchThread(COS_SCHED_BRAND_WAIT);
-	return;
-}
-/*-----------------------------------------------------------*/
-extern int have_restored;
-void timer_tick (void) {
-	/* u64_t start, end, total, samples; */
-	/* start = end = total = samples; */
-	while(1) {
-		//		freertos_lock();
-		//		freertos_print("Got timer tick. Total ticks: %d\n", ticks);
-		//check if we're done running here. for now, forget it.
-		ticks++;
-		if (ticks == 2) {
-			have_restored = freertos_checkpoint();
-		}
-		
-		/* if (ticks % CHECKPOINT_INTERVAL == 0 && ticks % 32 != 0) { */
-		/* 	rdtscll(start); */
-		/* 	int ret = freertos_checkpoint(); */
-		/* 	if (ret == 1) { */
-		/* 		freertos_print("Have returned from a restore.\n"); */
-		/* 	} else { */
-		/* 		/\* rdtscll(end); *\/ */
-		/* 		/\* if (end > start) { *\/ */
-		/* 		/\* 	freertos_print("Checkpoint time (cycles): %llu\n", end - start); *\/ */
-		/* 		/\* 	total += (end - start); *\/ */
-		/* 		/\* 	samples++; *\/ */
-		/* 		/\* 	freertos_print("Average checkpoint time: %llu\n", (total / samples)); *\/ */
-		/* 		/\* } *\/ */
-		/* 	} */
-			//			freertos_print("Returned from checkpoint in thread %d\n", freertos_get_thread_id());
-		/* } */
-		
-		//		freertos_print("\nHave restored: %d\n", have_restored);
-		
-		if (ticks % 32 == 0 && ticks > 0) {
-			freertos_print("Restoring, ticks = %d\n", ticks);
-			freertos_restore_checkpoint();
-			freertos_print("done restoring\n");
-		}
-		vPortYieldFromTick();
-	}
-}
-
-void timer_init(void) {
-	freertos_print("Timer init called...\n");
-	ticks = 0;
-	wakeup_time = 0;
-	child_wakeup_time = 0;
-	timer_tick();
-
-	// should never get here
-	freertos_print("ERROR ERROR ERROR IN TIMER_INIT: TIMER_TICK() RETURNED\n");
-	while(1);
-
-}
 
 /*
  * Setup timer 1 compare match A to generate a tick interrupt.
@@ -320,7 +304,6 @@ portBASE_TYPE xPortStartScheduler( void )
 	vPortEnableInterrupts();
 	prvSetupTimerInterrupt();
 	
-	//	freertos_checkpoint();
 	freertos_print("freertos: Switching to timer thread...\n");
 	freertos_switch_thread(freertos_timer_thread, 0);
 

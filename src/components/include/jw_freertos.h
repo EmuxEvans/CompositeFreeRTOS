@@ -1,14 +1,20 @@
 #include <cos_types.h>
 
 /* 
- *These two options are mutually exclusive. Only one should be enabled. 
+ *These options are mutually exclusive. Only one should be enabled. 
  */
 //#define FREERTOS_INTERRUPT_LATENCY_TEST
 //#define FREERTOS_MQ_TEST
+//#define FREERTOS_CHECKPOINT_TEST
+#define FREERTOS_RESTORE_TEST
 
-#define FREERTOS_CHECKPOINT_TEST
+/* ---------------------- */
 
 #ifdef FREERTOS_CHECKPOINT_TEST
+#define FREERTOS_INTERRUPT_LATENCY_TEST
+#endif
+
+#ifdef FREERTOS_RESTORE_TEST
 #define FREERTOS_INTERRUPT_LATENCY_TEST
 #endif
 

@@ -185,14 +185,36 @@ static void prvSetupTimerInterrupt( void );
 
 extern int have_restored;
 void timer_tick (void) {
+	u64_t start, end, total, samples;
+	start = end = total = samples = 0;
 	while(1) {
 
 		ticks++;
 
 #ifdef FREERTOS_CHECKPOINT_TEST
+		
+		if (ticks % CHECKPOINT_INTERVAL == 0 && ticks % 32 != 0) {
+			rdtscll(start);
+			int ret = freertos_checkpoint();
+			if (ret == 1) {
+				freertos_print("Have returned from a restore.\n");
+			} else {
+				rdtscll(end);
+				if (end > start) {
+					freertos_print("Checkpoint time (cycles): %llu\n", end - start);
+					total += (end - start);
+					samples++;
+					freertos_print("Average checkpoint time: %llu\n", (total / samples));
+				}
+			}
+			//freertos_print("Returned from checkpoint in thread %d\n", freertos_get_thread_id());
+		}
+#endif
+#ifdef FREERTOS_RESTORE_TEST
 		if (ticks == 2) {
 			have_restored = freertos_checkpoint();
 		}
+
 
 		if (ticks % 32 == 0 && ticks > 0) {
 			freertos_print("Ticks = %llu, restoring checkpoint...\n", ticks);

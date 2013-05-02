@@ -167,14 +167,14 @@ static void lowPrioRdtscTask( void *pvParameters )
 
 static void vPolledQueueProducer( void *pvParameters )
 {
-u64_t usValue = 0, usLoop;
-xQueueHandle *pxQueue;
-const portTickType xDelay = ( portTickType ) 200 / portTICK_RATE_MS;
-const unsigned short usNumToProduce = 1;
-const char * const pcTaskStartMsg = "Polled queue producer started.\r\n";
-const char * const pcTaskErrorMsg = "Could not post on polled queue.\r\n";
-short sError = pdFALSE;
- u64_t tsc;
+	//	u64_t usValue = 0, usLoop;
+	xQueueHandle *pxQueue;
+	const portTickType xDelay = ( portTickType ) 200 / portTICK_RATE_MS;
+	//const unsigned short usNumToProduce = 1;
+	const char * const pcTaskStartMsg = "Polled queue producer started.\r\n";
+	//const char * const pcTaskErrorMsg = "Could not post on polled queue.\r\n";
+	//short sError = pdFALSE;
+	u64_t tsc;
 
 	/* Queue a message for printing to say the task has started. */
 	vPrintDisplayMessage( &pcTaskStartMsg );
